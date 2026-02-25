@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>MCE STARLINK MANAGER</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        :root {
+            --bg-main: #050816;
+            --bg-card: #0b1220;
+            --bg-card-soft: #111827;
+            --border-subtle: #1f2937;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-orange: #f97316;
+            --accent-purple: #a855f7;
+            --text-main: #e5e7eb;
+            --text-sub: #9ca3af;
+            --pill-bg: #111827;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #0f172a 0, #020617 55%, #000 100%);
+            color: var(--text-main);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 16px 40px;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .title-main {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
+
+        .title-sub {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        .badge-session {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid var(--border-subtle);
+            background: rgba(15,23,42,0.9);
+        }
+
+        .badge-session span {
+            color: var(--accent-blue);
+            font-weight: 700;
+        }
+
+        .btn-logout {
+            margin-left: 12px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(15,23,42,0.9);
+            font-size: 11px;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        .btn-logout:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .card-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .card {
+            background: radial-gradient(circle at top left, #111827 0, #020617 90%);
+            border-radius: 18px;
+            padding: 14px 16px;
+            border: 1px solid rgba(148,163,184,0.15);
+            box-shadow: 0 12px 30px rgba(15,23,42,0.7);
+        }
+
+        .card-title {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+
+        .card-main {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .card-subtext {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+
+        .card-subtext span {
+            color: var(--accent-blue);
+        }
+
+        .section-title {
+            margin-top: 10px;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .section-sub {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+        }
+
+        .section-sub span {
+            color: var(--accent-blue);
+        }
+
+        .top-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        .top-toolbar-left span {
+            color: var(--text-sub);
+        }
+
+        .top-toolbar-left code {
+            background: #020617;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            font-size: 10px;
+        }
+
+        .top-toolbar-right {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .btn-small {
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 10px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(15,23,42,0.9);
+            cursor: pointer;
+            color: var(--text-main);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-small.danger {
+            border-color: rgba(248,113,113,0.4);
+            color: #fecaca;
+        }
+
+        .btn-small.primary {
+            border-color: rgba(59,130,246,0.4);
+            color: #bfdbfe;
+        }
+
+        .btn-small:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .table-container {
+            background: radial-gradient(circle at top left, #020617 0, #020617 100%);
+            border-radius: 18px;
+            border: 1px solid rgba(30,64,175,0.6);
+            box-shadow: 0 18px 45px rgba(15,23,42,0.9);
+            padding: 8px 0 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        thead tr {
+            color: var(--text-sub);
+        }
+
+        thead th {
+            text-align: left;
+            font-weight: 500;
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 4px 8px;
+            border-bottom: 1px solid rgba(15,23,42,0.8);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: rgba(15,23,42,0.8);
+        }
+
+        .cell-checkbox {
+            width: 28px;
+        }
+        
+        /* SUPER ADMIN이 아니면 체크박스(선택) 컬럼 숨김 */
+        table.hide-select-col .cell-checkbox {
+            display: none;
+        }
+
+        .cell-user {
+            color: #fb923c;
+            font-weight: 600;
+        }
+
+        .tag {
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            font-size: 10px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .tag-role {
+            cursor: pointer;
+        }
+
+        .tag-role.crew {
+            border-color: rgba(148,163,184,0.6);
+        }
+
+        .tag-role.public {
+            border-color: rgba(248,113,113,0.7);
+            color: #fecaca;
+        }
+
+        .tag-role.apprentice {
+            border-color: rgba(180,83,9,0.7);
+            color: #fed7aa;
+        }
+
+        .tag-role.manager {
+            border-color: rgba(56,189,248,0.7);
+            color: #bae6fd;
+        }
+
+        .tag-manager.manager {
+            border-color: rgba(56,189,248,0.7);
+            color: #bae6fd;
+        }
+
+        .tag-manager.user {
+            border-color: rgba(148,163,184,0.6);
+        }
+
+        .pill-status {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            border: 1px solid rgba(34,197,94,0.5);
+            color: #bbf7d0;
+            background: rgba(21,128,61,0.1);
+            cursor: pointer;
+        }
+
+        .pill-status.inactive {
+            border-color: rgba(148,163,184,0.5);
+            color: #e5e7eb;
+            background: transparent;
+        }
+
+        .input-small {
+            padding: 2px 4px;
+            border-radius: 6px;
+            border: 1px solid rgba(55,65,81,0.9);
+            background: rgba(15,23,42,0.9);
+            color: var(--text-main);
+            font-size: 11px;
+        }
+
+        .input-usage {
+            text-align: right;
+        }
+
+        .input-prepaid {
+            width: 70px;
+            text-align: right;
+        }
+
+        .input-small:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .footer-bar {
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: var(--text-sub);
+        }
+
+        .footer-links button {
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            padding: 4px 8px;
+            background: rgba(15,23,42,0.9);
+            color: var(--text-sub);
+            font-size: 10px;
+            margin-right: 4px;
+        }
+
+        .footer-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-main {
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 11px;
+            border: 1px solid rgba(59,130,246,0.5);
+            background: radial-gradient(circle at top left, #1d4ed8 0, #0f172a 70%);
+            color: #e5e7eb;
+            cursor: pointer;
+        }
+
+        .btn-main.danger {
+            border-color: rgba(248,113,113,0.6);
+            background: radial-gradient(circle at top left, #b91c1c 0, #0f172a 70%);
+        }
+
+        .btn-main:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .pill-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.6);
+            font-size: 10px;
+        }
+
+        .pill-badge span {
+            color: var(--accent-blue);
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .pill-helper {
+            font-size: 10px;
+            margin-top: 4px;
+            color: var(--text-sub);
+        }
+
+        .pill-helper span {
+            color: var(--accent-blue);
+        }
+
+        .top-toolbar .hint {
+            font-size: 10px;
+            color: var(--text-sub);
+            margin-left: 8px;
+        }
+
+        .top-toolbar .hint span {
+            color: var(--accent-orange);
+        }
+
+        .card-link {
+            font-size: 10px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        .card-link span {
+            color: var(--accent-blue);
+        }
+
+        /* 모달 공용 */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.75);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .modal {
+            background: #020617;
+            border-radius: 16px;
+            border: 1px solid rgba(148,163,184,0.3);
+            padding: 16px 18px;
+            width: 360px;
+            max-width: 95%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+
+        .modal-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .modal-body {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-bottom: 10px;
+        }
+
+        .modal-row {
+            margin-top: 6px;
+            margin-bottom: 8px;
+        }
+
+        .modal-row label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 4px 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(55,65,81,0.9);
+            background: rgba(15,23,42,0.9);
+            color: var(--text-main);
+            font-size: 11px;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-modal {
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 11px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(15,23,42,0.9);
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .btn-modal.primary {
+            border-color: rgba(59,130,246,0.6);
+            color: #bfdbfe;
+        }
+
+        .btn-modal:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .btn-modal.cancel:hover {
+            border-color: var(--accent-red);
+        }
+
+        /* 요금 정산 결과 카드 */
+        .billing-result {
+            margin-top: 16px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(59,130,246,0.5);
+            background: radial-gradient(circle at top left, #020617 0, #020617 100%);
+            box-shadow: 0 14px 36px rgba(15,23,42,0.9);
+            font-size: 11px;
+        }
+
+        .billing-result-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .billing-summary-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 4px;
+        }
+
+        .billing-summary-row span.label {
+            color: var(--text-sub);
+        }
+
+        .billing-summary-row span.value {
+            color: var(--accent-blue);
+            margin-left: 4px;
+        }
+
+        .billing-summary-row span.value.warn {
+            color: var(--accent-orange);
+        }
+
+        .billing-users-table {
+            margin-top: 8px;
+            max-height: none !important;
+            overflow-y: visible !important;
+        }
+
+        .billing-users-table table thead th {
+            position: sticky;
+            top: 0;
+            background: #020617;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="header-row">
+        <div>
+            <div class="title-main">MCE STARLINK MANAGER</div>
+            <div class="title-sub">선원별 월간 사용량 및 요금 분배를 모니터링하는 관리자 화면</div>
+        </div>
+        <div>
+            <span class="badge-session">
+                {% if role == 'superadmin' %}
+                    <span>SUPER ADMIN</span> 세션
+                {% else %}
+                    <span>ADMIN</span> 세션
+                {% endif %}
+            </span>
+            <button class="btn-logout" onclick="window.location.href='/logout'">로그아웃</button>
+        </div>
+    </div>
+
+    <div class="card-row">
+        <div class="card">
+            <div class="card-title">총 사용자 수</div>
+            <div class="card-main" id="card-total-users">{{ total_users }}</div>
+            <div class="card-subtext">
+                실 사용자만 (role = crew / apprentice 만 카운트, Ship's Public 제 외)
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">집계 기간 시작 (UTC)</div>
+            <div class="card-main" id="card-period-start">{{ period_start_utc }}</div>
+            <div class="card-subtext">
+                <span>UTC기준, Starlink data Reset되는 기준날짜</span>
+            </div>
+            <div class="card-link">
+                <a href="javascript:void(0);" onclick="openPeriodModal()">기준 시간 변경</a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">최근 사용량 업데이트 (UTC)</div>
+            <div class="card-main" id="card-last-updated">{{ last_updated_utc }}</div>
+            <div class="card-subtext">
+                Raspberry Pi → MikroTik API 기반 UTC기준
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">사용자 리스트</div>
+    <div class="section-sub">
+        MikroTik Hotspot user별 월간 총 사용량 (bytes 기반, 화면에는 B / KB / MB / GB 자동 단위 표시)<br/>
+        <span>집계 기준:</span> usage_public.json + user_config.json
+    </div>
+
+
+    <div class="card">
+        <h3>System Control</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn-main" onclick="saveSnapshot()">사용량 수동저장</button>
+            <!-- [ADD] 과거 데이터 로딩 -->
+            <button class="btn-main" onclick="openArchiveBilling()">과거 DATA 로딩</button>
+            <button class="btn-main danger" onclick="resetAllUsage()">
+                Reset All Usage (to 0)
+            </button>
+        </div>
+    </div>
+
+
+
+    <!-- ★ Starlink 계약량 입력 바 -->
+    <div class="top-toolbar" style="margin-bottom: 6px;">
+        <div class="top-toolbar-left">
+            <span>Starlink 계약 용량:</span>
+            <span style="margin-left:6px;">50&nbsp;GB ×</span>
+            <input id="contract-50g" type="number" min="0" step="1"
+                   style="width:60px;padding:2px 4px;border-radius:6px;border:1px solid #374151;background:#020617;color:#e5e7eb;font-size:10px;"
+                   oninput="recalcContractTotal()" />
+            <span style="margin-left:10px;">500&nbsp;GB ×</span>
+            <input id="contract-500g" type="number" min="0" step="1"
+                   style="width:60px;padding:2px 4px;border-radius:6px;border:1px solid #374151;background:#020617;color:#e5e7eb;font-size:10px;"
+                   oninput="recalcContractTotal()" />
+            <span style="margin-left:10px;">총 계약량:</span>
+            <span id="contract-total" style="margin-left:4px;color:#bfdbfe;font-weight:600;">0 GB</span>
+        </div>
+        <div class="top-toolbar-right">
+            <button class="btn-small primary" onclick="saveContractSettings()">계약 용량 저장</button>
+        </div>
+    </div>
+
+    <!-- 사용자 사용량 합계 + 실제 Starlink 사용량 -->
+    <div class="top-toolbar" style="margin-bottom:10px;">
+        <div class="top-toolbar-left">
+            <span id="usage-sum-text">사용자 실제 사용량 합계: 0.0 GB</span>
+        </div>
+        <div class="top-toolbar-right">
+            <span style="color:var(--text-sub);">Starlink 앱 총 사용량(GB):</span>
+            <input id="starlink-actual" type="number" step="0.1" min="0"
+                   style="width:80px;padding:2px 4px;border-radius:6px;border:1px solid #374151;background:#020617;color:#e5e7eb;font-size:10px;"
+                   oninput="recalcUsageSummary()" />
+            <span id="starlink-actual-progress" style="font-size:10px;color:#bfdbfe;"></span>
+        </div>
+    </div>
+
+    <div class="top-toolbar">
+        <div class="top-toolbar-left">
+            <span>현재 기준:</span>
+            <code>usage_public.json + user_config.json</code>
+            <span class="hint">※ SUPER ADMIN만 편집가능.</span>
+        </div>
+        <div class="top-toolbar-right">
+            <button class="btn-small primary" onclick="saveUserSettings()">전체 설정 저장</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="user-table">
+            <thead>
+            <tr>
+                <th class="cell-checkbox"><input type="checkbox" id="chk-all" onclick="toggleAll(this)"></th>
+                <th>USER Name</th>
+                <th>역할</th>
+                                <th>LIMIT (GB)</th>
+                <th>Total Usage</th>
+                <th>Rate</th>
+                <th>개인 선납 ($)</th>
+                            </tr>
+            </thead>
+            <tbody id="user-tbody">
+            <!-- JS 로 채움 -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-bar">
+        <div class="footer-links">
+            <button onclick="alert('usage_public.json 은 Raspberry Pi Collector 가 관리합니다.')">집계 기준: usage_public.json</button>
+            <button onclick="alert('user_config.json 은 이 관리자 화면에서 편집합니다.')">user_config.json</button>
+        </div>
+    </div>
+
+    <!-- 요금 정산 결과 -->
+    <div id="billing-result" class="billing-result" style="display:none;">
+        <div class="billing-result-title">요금 정산 결과</div>
+        <div class="billing-summary-row">
+            <div><span class="label">기준 금액 E1:</span><span class="value" id="br-E1"></span></div>
+            <div><span class="label">총 징수 목표 (F16):</span><span class="value" id="br-target"></span></div>
+            <div><span class="label">공용 선납 (F21):</span><span class="value" id="br-common"></span></div>
+        </div>
+        <div class="billing-summary-row">
+            <div><span class="label">개인 선납 합계:</span><span class="value" id="br-personal"></span></div>
+            <div><span class="label">실제 징수 합계:</span><span class="value" id="br-collected"></span></div>
+            <div><span class="label">목표 대비 차이:</span><span class="value" id="br-diff"></span></div>
+        </div>
+        <div class="billing-users-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>USER</th>
+                    <th>역할</th>
+                    <th>사용량 (GB)</th>
+                    <th>기본요금</th>
+                    <th>가변요금</th>
+                    <th>최종요금</th>
+                </tr>
+                </thead>
+                <tbody id="billing-users-tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 집계 기간 시작 변경 모달 -->
+<div class="modal-backdrop" id="period-modal">
+    <div class="modal">
+        <div class="modal-title">집계 기준일 변경</div>
+        <div class="modal-body">
+            매월 반복되는 <strong style="color:var(--text-main);">기준 시작일</strong>을 입력하세요.<br/>
+            입력한 일(day) 기준으로 가장 가까운 미래 날짜가 자동 계산되어<br/>
+            <span>billing_settings.json</span> 및 <span>billing_start_day.txt</span> 에 저장됩니다.
+        </div>
+        <div class="modal-row">
+            <label for="period-input">기준일 (1 ~ 31)</label>
+            <input id="period-input" class="modal-input" type="number"
+                   min="1" max="31" step="1" placeholder="예: 23" />
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal cancel" onclick="closePeriodModal()">취소</button>
+            <button class="btn-modal primary" onclick="savePeriodStart()">저장</button>
+        </div>
+    </div>
+</div>
+
+<!-- 요금 계산 모달 -->
+
+<script>
+    let gUsers = [];
+    const ROLE_LABEL = {
+        "crew": "Crew",
+        "manager": "Manager",
+        "public": "Public",
+        "apprentice": "Apprentice"
+    };
+    const CURRENT_ROLE = "{{ role }}";
+
+    function applyRoleUI() {
+        const t = document.getElementById("user-table");
+        if (!t) return;
+
+        if (CURRENT_ROLE === "superadmin") {
+            t.classList.remove("hide-select-col");
+        } else {
+            t.classList.add("hide-select-col");
+        }
+    }
+
+    // ===========================
+    // Auto refresh (5~10초)
+    // ===========================
+    const AUTO_REFRESH_MS = 10000;  // 10초 추천
+    let __uiDirty = false;
+
+    // 사용자가 입력을 건드리면 dirty로 표시 (자동 새로고침이 덮어쓰는 사고 방지)
+    function markDirty() {
+    __uiDirty = true;
+    }
+    function clearDirty() {
+    __uiDirty = false;
+    }
+
+    function toggleAll(master) {
+        const checked = !!master.checked;
+        document.querySelectorAll(".row-check").forEach(cb => {
+            cb.checked = checked;
+        });
+        markDirty(); // 선택상태도 “편집중”으로 간주해서 자동갱신 방지
+    }
+
+    // 모달 열려있거나 입력 중이면 자동 갱신 스킵
+    function isUiBusy() {
+    const el = document.activeElement;
+    if (el && ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName)) return true;
+
+    const billingModal = document.getElementById("billing-modal");
+    if (billingModal && billingModal.style.display === "flex") return true;
+
+    const periodModal = document.getElementById("period-modal");
+    if (periodModal && periodModal.style.display === "flex") return true;
+
+    return false;
+    }
+
+    function startAutoRefreshUsers() {
+        setInterval(async () => {
+            try {
+                // 사용자가 편집 중이면 덮어쓰기 방지
+                if (__uiDirty) return;
+                if (isUiBusy()) return;
+
+                // ✅ RouterOS -> user_config 갱신 (추가/삭제 반영)
+                // 실패해도 화면 갱신(loadUsers)은 시도하도록 설계
+                try {
+                    await fetch("/api/users/refresh", { method: "POST" });
+                } catch (e) {
+                    console.warn("Auto refresh: /api/users/refresh failed:", e);
+                }
+
+                // ✅ 화면 갱신
+                await loadUsers();
+            } catch (e) {
+                console.warn("Auto refresh failed:", e);
+            }
+        }, AUTO_REFRESH_MS);
+    }
+
+    // ===== bytes <-> 단위 변환 유틸 =====
+    function unitToMultiplier(unit) {
+        switch (unit) {
+            case "GB": return 1024 * 1024 * 1024;
+            case "MB": return 1024 * 1024;
+            case "KB": return 1024;
+            case "B":
+            default:   return 1;
+        }
+    }
+
+    function chooseUnitForInput(bytes) {
+        let unit = "B";
+        let value = bytes;
+        let decimals = 0;
+
+        if (bytes >= 1024 * 1024 * 1024) {
+            unit = "GB";
+            value = bytes / (1024 * 1024 * 1024);
+            decimals = 4;
+        } else if (bytes >= 1024 * 1024) {
+            unit = "MB";
+            value = bytes / (1024 * 1024);
+            decimals = 3;
+        } else if (bytes >= 1024) {
+            unit = "KB";
+            value = bytes / 1024;
+            decimals = 2;
+        } else {
+            unit = "B";
+            value = bytes;
+            decimals = 0;
+        }
+        return { value, unit, decimals };
+    }
+
+    function formatBytesShort(bytes) {
+        if (!bytes || bytes <= 0) return "0 B";
+        const units = ["B", "KB", "MB", "GB", "TB"];
+        let u = 0;
+        let v = bytes;
+        while (v >= 1024 && u < units.length - 1) {
+            v /= 1024;
+            u++;
+        }
+        return v.toFixed(u === 0 ? 0 : 2) + " " + units[u];
+    }
+
+    // ===== _offset_bytes helpers (raw + offset = effective) =====
+    function asIntOr0(v) {
+        const n = parseInt(v ?? 0, 10);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function getRawUsageBytes(u) {
+        if (u && typeof u.usage_bytes === "number" && Number.isFinite(u.usage_bytes)) return u.usage_bytes;
+        const gb = parseFloat(u?.usage_gb || "0");
+        return Number.isFinite(gb) ? Math.round(gb * 1024 * 1024 * 1024) : 0;
+    }
+
+    function getOffsetBytes(u) {
+        return asIntOr0(u?._offset_bytes ?? 0);
+    }
+
+    function getEffectiveUsageBytes(u) {
+        // ✅ 안전장치: 0 미만 방지
+        return Math.max(0, getRawUsageBytes(u) + getOffsetBytes(u));
+    }
+
+    function formatSignedBytes(bytes) {
+        const b = asIntOr0(bytes);
+        if (b === 0) return "0 B";
+        const sign = b > 0 ? "+" : "-";
+        return sign + formatBytesShort(Math.abs(b));
+    }
+
+    function getUsageBytesFromInputs(userId) {
+        const vEl = document.getElementById(`usage-value-${userId}`);
+        const uEl = document.getElementById(`usage-unit-${userId}`);
+        if (!vEl || !uEl) return 0;
+        const v = parseFloat(vEl.value || "0");
+        const unit = uEl.value || "B";
+        if (isNaN(v) || v < 0) return 0;
+        return Math.round(v * unitToMultiplier(unit));
+    }
+
+    function updateUsageHelper(userId) {
+        const helper = document.getElementById(`usage-helper-${userId}`);
+        if (!helper) return;
+        const bytes = getUsageBytesFromInputs(userId);
+        helper.textContent = `${formatBytesShort(bytes)} (${bytes.toLocaleString()} B)`;
+    }
+
+    function handleUsageChange(userId) {
+        updateUsageHelper(userId);
+        recalcUsageSummary();
+        markDirty();
+    }
+
+    // ===== 역할 pill 업데이트 =====
+    function updateRolePill(el, role) {
+        el.classList.remove("crew", "manager", "public", "apprentice");
+        el.classList.add(role);
+        el.textContent = ROLE_LABEL[role] || "Crew";
+    }
+
+    function toggleRole(userId) {
+        const hidden = document.querySelector(`#role-input-${userId}`);
+        const pill = document.querySelector(`#role-pill-${userId}`);
+        let current = hidden.value || "crew";
+
+        let next;
+        if (current === "crew") next = "manager";
+        else if (current === "manager") next = "public";
+        else if (current === "public") next = "apprentice";
+        else next = "crew";
+
+        hidden.value = next;
+        updateRolePill(pill, next);
+
+        recalcTotalUsersCard();
+        recalcUsageSummary();
+        markDirty();
+    }
+
+
+    function buildRow(u) {
+        const tr = document.createElement("tr");
+        tr.id = `row-${u.user}`;
+
+        const rawBytes = getRawUsageBytes(u);
+        const offsetBytes = getOffsetBytes(u);
+        const bytes = Math.max(0, rawBytes + offsetBytes); // ✅ 안전장치
+
+        const info = chooseUnitForInput(bytes);
+        const progressGB = (bytes / (1024 * 1024 * 1024));
+        const progress = u.limit_gb > 0 ? (progressGB / u.limit_gb * 100) : 0;
+
+        // [삽입 시작]
+        let totalUsageCellContent;
+        const isSuperAdmin = CURRENT_ROLE === "superadmin";
+
+        if (isSuperAdmin) {
+            // Superadmin: 기존의 입력 필드와 단위 선택 박스, 하단 상세 표시
+            totalUsageCellContent = `
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
+                    <input type="number" class="input-small input-usage" id="usage-value-${u.user}"
+                           style="width:80px;"
+                           value="${info.value.toFixed(info.decimals)}" step="0.0001" min="0"
+                           oninput="handleUsageChange('${u.user}')">
+                    <select id="usage-unit-${u.user}" class="input-small" style="width:60px;"
+                            onchange="handleUsageChange('${u.user}')">
+                        <option value="B"  ${info.unit === "B"  ? "selected" : ""}>B</option>
+                        <option value="KB" ${info.unit === "KB" ? "selected" : ""}>KB</option>
+                        <option value="MB" ${info.unit === "MB" ? "selected" : ""}>MB</option>
+                        <option value="GB" ${info.unit === "GB" ? "selected" : ""}>GB</option>
+                    </select>
+                </div>
+                <div class="pill-helper" id="usage-helper-${u.user}"></div>
+                <div class="pill-helper" style="opacity:.85;">
+                    raw: ${formatBytesShort(rawBytes)} | offset: ${formatSignedBytes(offsetBytes)}
+                </div>
+            `;
+        } else {
+            // 일반 Admin: 읽기 전용 텍스트만 표시 및 하단 상세 제거
+            totalUsageCellContent = `
+                <div style="
+                    display:flex;
+                    align-items:center;
+                    justify-content:flex-end;
+                    font-size:11px;
+                    font-weight:600;
+                    color:var(--text-main);
+                    padding:2px 0;
+                    height: 24px;
+                    cursor: default;
+                ">
+                    ${info.value.toFixed(info.decimals)} ${info.unit}
+                </div>
+            `;
+        }
+        // [삽입 끝]
+
+        tr.innerHTML = `
+            <td class="cell-checkbox">
+                <input type="checkbox" class="row-check" id="chk-${u.user}" onchange="markDirty()">
+            </td>
+            <td class="cell-user">${u.user}</td>
+            <td>
+                <span class="tag tag-role ${u.role}" id="role-pill-${u.user}"
+                      onclick="toggleRole('${u.user}')">${ROLE_LABEL[u.role] || "Crew"}</span>
+                <input type="hidden" id="role-input-${u.user}" value="${u.role}">
+            </td>
+<td>
+                <input type="number" class="input-small" id="limit-${u.user}"
+                       style="width:72px;"
+                       value="${u.limit_gb.toFixed(1)}" min="1" max="999" step="0.01" oninput="markDirty()">
+            </td>
+            <td class="text-right">
+                ${totalUsageCellContent}
+            </td>
+            <td class="text-right">
+                ${progress.toFixed(1)}%
+            </td>
+            <td class="text-right">
+                <input type="number" class="input-small input-prepaid" id="prepaid-${u.user}"
+                       value="${u.personal_prepaid.toFixed(0)}" step="1" min="0" oninput="markDirty()">
+            </td>
+`;
+
+        // ★ ADMIN 은 usage 입력을 수정할 수 없도록 비활성화
+        if (CURRENT_ROLE !== "superadmin") {
+            const vEl = tr.querySelector(`#usage-value-${u.user}`);
+            const uEl = tr.querySelector(`#usage-unit-${u.user}`);
+            if (vEl) vEl.disabled = true;
+            if (uEl) uEl.disabled = true;
+        }
+
+        return tr;
+    }
+
+    // ===== 총 사용자 수 (role != public 인 모든 사용자) =====
+    function recalcTotalUsersCard() {
+        let count = 0;
+        gUsers.forEach(u => {
+            const row = document.getElementById(`row-${u.user}`);
+            if (!row) return;
+            const roleVal = document.getElementById(`role-input-${u.user}`);
+            if (!roleVal) return;
+            const role = roleVal.value || "crew";
+            if (role !== "public") count += 1;
+        });
+        const card = document.getElementById("card-total-users");
+        if (card) card.textContent = count.toString();
+    }
+
+    async function loadUsers() {
+        const res = await fetch("/api/users");
+        if (!res.ok) {
+            alert("사용자 정보를 불러오지 못했습니다.");
+            return;
+        }
+        const data = await res.json();
+        gUsers = data.users || [];
+        const tbody = document.getElementById("user-tbody");
+        tbody.innerHTML = "";
+        gUsers.forEach(u => {
+            if (!u.role) u.role = "crew";
+
+            if (typeof u.usage_bytes !== "number") {
+                const gb = parseFloat(u.usage_gb || "0");
+                u.usage_bytes = isNaN(gb) ? 0 : Math.round(gb * 1024 * 1024 * 1024);
+            }
+        
+            u._offset_bytes = asIntOr0(u._offset_bytes);
+
+            const tr = buildRow(u);
+            tbody.appendChild(tr);
+            updateUsageHelper(u.user);
+        });
+
+        recalcTotalUsersCard();
+        recalcUsageSummary();
+    }
+
+    async function saveUserSettings(showAlert = true) {
+        const payload = {
+            users: []
+        };
+
+        gUsers.forEach(u => {
+            const row = document.getElementById(`row-${u.user}`);
+            if (!row) return;
+
+            const limit = parseFloat(document.getElementById(`limit-${u.user}`).value || "0");
+            const prepaid = parseFloat(document.getElementById(`prepaid-${u.user}`).value || "0");
+            const role = document.getElementById(`role-input-${u.user}`).value || "crew";            const cb = document.getElementById(`chk-${u.user}`);
+
+            // ✅ 기본: 기존 offset 유지 (서버에 항상 같이 보내서 누락/삭제 방지)
+            let offsetBytes = asIntOr0(u._offset_bytes);
+
+            // ✅ Superadmin + 체크된 사용자만: 입력값(=최종 표시/정산용 사용량) 기준으로 offset 재계산
+            if (CURRENT_ROLE === "superadmin" && cb && cb.checked) {
+                const desiredBytes = getUsageBytesFromInputs(u.user); // 최종 사용량(표시/정산용)
+                const rawBytes = getRawUsageBytes(u);                 // collector raw
+                offsetBytes = desiredBytes - rawBytes;                // ✅ offset 계산 (음수 가능)
+                u._offset_bytes = offsetBytes;                        // UI 상태 갱신
+            }
+
+            const obj = {
+                user: u.user,
+                display_name: u.display_name || u.user,
+                limit_gb: limit,
+                personal_prepaid: prepaid,
+                role: role,
+                // ✅ 항상 포함 (누락 방지)
+                _offset_bytes: offsetBytes
+            };
+
+            payload.users.push(obj);
+        });
+
+        try {
+            const res = await fetch("/api/users/save", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const txt = await res.text();
+                if (showAlert) alert("저장 실패: " + txt);
+                return false;
+            }
+
+            if (showAlert) {
+                alert("사용자 설정이 저장되었습니다.");
+            }
+            clearDirty();
+            return true;
+        } catch (e) {
+            if (showAlert) alert("저장 중 오류가 발생했습니다: " + e);
+            return false;
+        }
+    }
+
+    // ===== ISO <-> 표시 문자열 변환 =====
+    function isoToDisplay(iso) {
+        if (!iso) return "";
+        const m = iso.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+        if (m) {
+            return m[1] + " " + m[2];
+        }
+        const m2 = iso.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$/);
+        if (m2) return iso;
+        return iso;
+    }
+
+    function displayToIso(str) {
+        const m = str.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})$/);
+        if (!m) return null;
+        const date = m[1];
+        const hh = m[2];
+        const mm = m[3];
+        return `${date}T${hh}:${mm}:00Z`;
+    }
+
+    // ===== 집계 기준 시작 모달 =====
+    function openPeriodModal() {
+        const modal = document.getElementById("period-modal");
+        modal.style.display = "flex";
+
+        // billing_start_day.txt 에서 현재 기준일 숫자 로드
+        fetch("/api/settings/billing_start_day")
+            .then(r => r.json())
+            .then(js => {
+                if (js.billing_start_day) {
+                    document.getElementById("period-input").value = js.billing_start_day;
+                }
+            })
+            .catch(() => {
+                // fallback: billing_period_start_utc 에서 day 추출
+                fetch("/api/settings/billing_period")
+                    .then(r => r.json())
+                    .then(js => {
+                        if (js.billing_period_start_utc) {
+                            const d = new Date(js.billing_period_start_utc);
+                            if (!isNaN(d)) {
+                                document.getElementById("period-input").value = d.getUTCDate();
+                            }
+                        }
+                    })
+                    .catch(() => {});
+            });
+    }
+
+    function closePeriodModal() {
+        const modal = document.getElementById("period-modal");
+        modal.style.display = "none";
+    }
+
+
+
+    // 기준일(day) 숫자만 입력 → 가장 가까운 미래 날짜로 자동 계산 후 저장
+    async function savePeriodStart() {
+        const inputEl = document.getElementById("period-input");
+        if (!inputEl) { alert("period-input 요소를 찾지 못했습니다."); return; }
+
+        const dayVal = parseInt(inputEl.value.trim(), 10);
+        if (isNaN(dayVal) || dayVal < 1 || dayVal > 31) {
+            alert("1 ~ 31 사이의 숫자를 입력하세요.");
+            return;
+        }
+
+        // 현재 UTC 기준으로 "가장 가까운 미래의 해당 일" 계산
+        const nowUtc = new Date();
+        let year  = nowUtc.getUTCFullYear();
+        let month = nowUtc.getUTCMonth(); // 0-based
+
+        // 이번 달의 해당 일 (말일 clamp 포함)
+        function buildDate(y, m, day) {
+            // 해당 월의 마지막 날
+            const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+            const d = Math.min(day, lastDay);
+            return new Date(Date.UTC(y, m, d, 0, 0, 0));
+        }
+
+        let target = buildDate(year, month, dayVal);
+
+        // 오늘 이하(과거 또는 당일)이면 다음 달로
+        if (target.getTime() <= nowUtc.getTime()) {
+            month += 1;
+            if (month > 11) { month = 0; year += 1; }
+            target = buildDate(year, month, dayVal);
+        }
+
+        const iso = target.toISOString().replace(".000Z", "Z");
+        const displayStr = isoToDisplay(iso);
+
+        // 1) billing_settings.json 에 ISO 날짜 저장
+        const res = await fetch("/api/settings/billing_period", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({billing_period_start_utc: iso})
+        });
+
+        if (!res.ok) {
+            const txt = await res.text();
+            alert("저장 실패 (billing_settings.json): " + txt);
+            return;
+        }
+
+        // 2) billing_start_day.txt 에 일(day) 숫자 저장
+        const res2 = await fetch("/api/settings/billing_start_day", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({billing_start_day: dayVal})
+        }).catch(() => null);
+
+        if (res2 && !res2.ok) {
+            console.warn("billing_start_day.txt 저장 실패 (무시)");
+        }
+
+        alert(
+            `✅ 기준일 저장 완료!
+` +
+            `기준일: 매월 ${dayVal}일
+` +
+            `다음 기준 시작: ${displayStr} (UTC)
+
+` +
+            `billing_settings.json, billing_start_day.txt 모두 업데이트됨.`
+        );
+
+        // 카드에 반영
+        const card = document.getElementById("card-period-start");
+        if (card) card.textContent = displayStr;
+
+        closePeriodModal();
+    }
+
+
+
+    // ===== 요금 계산 모달 =====
+    async function openBillingModal() {
+        const modal = document.getElementById("billing-modal");
+        modal.style.display = "flex";
+
+        try {
+            const res = await fetch("/api/billing");
+            if (res.ok) {
+                const data = await res.json();
+                const p = data.params || {};
+                document.getElementById("billing-E1").value =
+                    (p.base_amount_E1 !== undefined) ? p.base_amount_E1 : 80;
+                document.getElementById("billing-F16").value =
+                    (p.target_total_F16 !== undefined) ? p.target_total_F16 : 1750;
+                document.getElementById("billing-F21").value =
+                    (p.common_prepaid_F21 !== undefined) ? p.common_prepaid_F21 : 50;
+            } else {
+                document.getElementById("billing-E1").value = 80;
+                document.getElementById("billing-F16").value = 1750;
+                document.getElementById("billing-F21").value = 50;
+            }
+        } catch (e) {
+            document.getElementById("billing-E1").value = 80;
+            document.getElementById("billing-F16").value = 1750;
+            document.getElementById("billing-F21").value = 50;
+        }
+    }
+
+    function closeBillingModal() {
+        const modal = document.getElementById("billing-modal");
+        modal.style.display = "none";
+    }
+
+    // ===== 요금 계산 버튼용: 먼저 저장 → 그 다음 요금 계산 =====
+    async function handleBillingClick() {
+        const ok = await saveUserSettings(false);
+        if (!ok) return;
+
+        if (typeof runBilling === "function") {
+            await runBilling();
+        } else {
+            alert("runBilling 함수가 정의되어 있지 않습니다.");
+        }
+    }
+
+    // ===== Starlink 계약 용량 (브라우저 localStorage 보관) =====
+    const CONTRACT_STORAGE_KEY = "mce_starlink_contract";
+
+    function getContractTotalGB() {
+        const n50 = parseInt(document.getElementById("contract-50g").value || "0", 10);
+        const n500 = parseInt(document.getElementById("contract-500g").value || "0", 10);
+        return 50 * n50 + 500 * n500;
+    }
+
+    function distributeLimitByContract(totalGB) {
+        if (totalGB <= 0) return;
+
+        let count = 0;
+        gUsers.forEach(u => {
+            const row = document.getElementById(`row-${u.user}`);
+            if (!row) return;
+            const roleVal = document.getElementById(`role-input-${u.user}`);
+            if (!roleVal) return;
+            const role = roleVal.value || "crew";
+            if (role !== "public") count++;
+        });
+        if (count <= 0) return;
+
+        const per = totalGB / count;
+        gUsers.forEach(u => {
+            const row = document.getElementById(`row-${u.user}`);
+            if (!row) return;
+            const roleVal = document.getElementById(`role-input-${u.user}`);
+            if (!roleVal) return;
+            const role = roleVal.value || "crew";
+            if (role === "public") return;
+            const limitInput = document.getElementById(`limit-${u.user}`);
+            if (limitInput) {
+                limitInput.value = per.toFixed(1);
+            }
+        });
+    }
+
+    function recalcContractTotal() {
+        const total = getContractTotalGB();
+        const span = document.getElementById("contract-total");
+        if (span) span.textContent = total + " GB";
+
+        if (total > 0) {
+            distributeLimitByContract(total);
+        }
+        recalcUsageSummary();
+    }
+
+    function loadContractSettings() {
+        try {
+            const raw = localStorage.getItem(CONTRACT_STORAGE_KEY);
+            if (!raw) {
+                recalcUsageSummary();
+                return;
+            }
+            const obj = JSON.parse(raw);
+            const n50 = obj.n50 || 0;
+            const n500 = obj.n500 || 0;
+
+            const i50 = document.getElementById("contract-50g");
+            const i500 = document.getElementById("contract-500g");
+            if (i50) i50.value = n50;
+            if (i500) i500.value = n500;
+            recalcContractTotal();
+        } catch (e) {
+            console.warn("계약 용량 불러오기 실패:", e);
+            recalcUsageSummary();
+        }
+    }
+
+    function saveContractSettings() {
+        const n50 = parseInt(document.getElementById("contract-50g").value || "0", 10);
+        const n500 = parseInt(document.getElementById("contract-500g").value || "0", 10);
+        const obj = { n50, n500 };
+        localStorage.setItem(CONTRACT_STORAGE_KEY, JSON.stringify(obj));
+        recalcContractTotal();
+        alert("계약 용량이 저장되었습니다 (브라우저 기준).");
+        clearDirty();
+    }
+
+
+
+
+
+    // 화면에 표시된 UTC를 Date로 파싱” 함수 추가
+    function parseUtcTextToDate(raw) {
+        if (!raw) return null;
+        let s = raw.trim();
+
+        // 혹시 "UTC:" 같은 prefix가 섞이면 제거
+        s = s.replace(/^UTC\s*:\s*/i, "").trim();
+
+        // 1) ISO (2025-12-27T10:49:49Z 등)
+        let d = new Date(s);
+        if (!isNaN(d.getTime()) && /Z$/i.test(s)) return d;
+
+        // 2) "YYYY-MM-DD HH:MM" or "YYYY-MM-DD HH:MM:SS"  -> UTC로 강제
+        let m = s.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) {
+            const sec = m[4] ? m[4] : "00";
+            return new Date(`${m[1]}T${m[2]}:${m[3]}:${sec}Z`);
+        }
+
+        // 3) "YYYY-Dec-27 09:55:51" 같은 형식(월 영문 약어)
+        let m2 = s.match(/^(\d{4})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{1,2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/i);
+        if (m2) {
+            const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+            const mo = months[m2[2].toLowerCase()];
+            const sec = m2[6] ? parseInt(m2[6],10) : 0;
+            return new Date(Date.UTC(
+                parseInt(m2[1],10),
+                mo,
+                parseInt(m2[3],10),
+                parseInt(m2[4],10),
+                parseInt(m2[5],10),
+                sec
+            ));
+        }
+
+        return null;
+    }
+
+    function getNowUtcFromPage() {
+        const el = document.getElementById("card-last-updated");
+        if (!el) return null;
+        return parseUtcTextToDate(el.textContent);
+    }
+
+    // “같은 일자/시각” 유지하면서 +1개월(말일 clamp)
+    function addOneMonthClampUTC(dt) {
+        const y = dt.getUTCFullYear();
+        const m = dt.getUTCMonth();
+        const d = dt.getUTCDate();
+        const hh = dt.getUTCHours();
+        const mm = dt.getUTCMinutes();
+        const ss = dt.getUTCSeconds();
+
+        const lastDay = new Date(Date.UTC(y, m + 2, 0, hh, mm, ss)).getUTCDate();
+        const nd = Math.min(d, lastDay);
+
+        return new Date(Date.UTC(y, m + 1, nd, hh, mm, ss));
+    }
+
+    function toIsoNoMillisZ(dt) {
+        // yyyy-mm-ddTHH:MM:SSZ
+        return dt.toISOString().replace(".000Z", "Z");
+    }
+
+
+    
+    // 모든 사용자의 이번 달 누적 사용량을 0으로 초기화 (RouterOS + Pi 동기 리셋)
+    async function resetAllUsage() {
+        // (선택) SUPER ADMIN만 허용하고 싶으면 아래 3줄 유지
+        if (typeof CURRENT_ROLE !== "undefined" && CURRENT_ROLE !== "superadmin") {
+            alert("권한이 없습니다. SUPER ADMIN만 실행할 수 있습니다.");
+            return;
+        }
+
+        // 실수 방지를 위한 2중 확인 창
+        if (!confirm(
+            "주의: RouterOS Hotspot 카운터를 리셋하고,\n" +
+            "Pi(usage_public.json) 누적값도 0으로 초기화합니다.\n\n" +
+            "정말 진행하시겠습니까?"
+        )) {
+            return;
+        }
+
+        if (!confirm("최종 확인: 이 작업은 되돌릴 수 없습니다. 진행할까요?")) {
+            return;
+        }
+
+        try {
+            // (있으면) 로딩 표시
+            if (typeof showSpinner === "function") showSpinner(true);
+
+            // RouterOS 리셋 (성공 시 서버에서 Pi usage_public.json 리셋까지 처리하도록 설계)
+            const resp = await fetch("/api/routeros/reset_counters_all", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+
+            let result = {};
+            try { result = await resp.json(); } catch (e) { result = {}; }
+
+            if (!resp.ok) {
+                alert(
+                    "오류 발생(RESET 실패):\n" +
+                    (result.error || result.message || "알 수 없는 오류")
+                );
+                return;
+            }
+
+            alert(
+                "성공:\n" +
+                (result.message || "RESET OK (RouterOS + Pi)")
+            );
+
+            location.reload();
+        } catch (e) {
+            console.error(e);
+            alert("서버 통신 중 에러가 발생했습니다.");
+        } finally {
+            if (typeof showSpinner === "function") showSpinner(false);
+        }
+    }
+
+
+
+    // ===== 사용량 합계/요약 재계산 =====
+    function recalcUsageSummary() {
+        let sumBytes = 0;
+        gUsers.forEach(u => {
+            const row = document.getElementById(`row-${u.user}`);
+            if (!row) return;            const roleVal = document.getElementById(`role-input-${u.user}`);
+            const role = roleVal ? (roleVal.value || "crew") : "crew";
+            if (role === "public") return;
+
+            // ✅ 합계는 "표시/정산용(effective)" 기준
+            if (CURRENT_ROLE === "superadmin") {
+                // superadmin은 입력값(= effective)을 합계로 사용
+                const bytes = getUsageBytesFromInputs(u.user);
+                sumBytes += bytes;
+                updateUsageHelper(u.user);
+            } else {
+                // 일반 admin은 raw + offset(effective)
+                sumBytes += getEffectiveUsageBytes(u);
+            }
+        });
+
+        const sumGB = sumBytes / (1024 * 1024 * 1024);
+        const totalGB = getContractTotalGB();
+        const textSpan = document.getElementById("usage-sum-text");
+        if (textSpan) {
+            if (totalGB > 0) {
+                const ratio = totalGB > 0 ? (sumGB / totalGB * 100) : 0;
+                textSpan.textContent =
+                    `사용자 실제 사용량 합계: ${sumGB.toFixed(3)} GB / 계약량 ${totalGB.toFixed(0)} GB (${ratio.toFixed(1)}%)`;
+            } else {
+                textSpan.textContent =
+                    `사용자 실제 사용량 합계: ${sumGB.toFixed(3)} GB (계약량 미입력)`;
+            }
+        }
+
+        const actualInput = document.getElementById("starlink-actual");
+        const actualSpan = document.getElementById("starlink-actual-progress");
+        if (actualInput && actualSpan) {
+            const act = parseFloat(actualInput.value || "0");
+            if (!totalGB || totalGB <= 0 || isNaN(act) || act <= 0) {
+                actualSpan.textContent = "";
+            } else {
+                const pr = act / totalGB * 100;
+                actualSpan.textContent = ` (실제 사용량 기준 ${pr.toFixed(1)}%)`;
+            }
+        }
+    }
+
+    // ===== 요금 계산 실제 호출 =====
+    async function runBilling() {
+        const E1 = parseFloat(document.getElementById("billing-E1").value || "0");
+        const F16 = parseFloat(document.getElementById("billing-F16").value || "0");
+        const F21 = parseFloat(document.getElementById("billing-F21").value || "0");
+
+        const usageSource = "public";
+
+        const payload = {
+            base_amount_E1: E1,
+            target_total_F16: F16,
+            common_prepaid_F21: F21,
+            usage_source: usageSource
+        };
+
+        const res = await fetch("/api/billing/run", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const txt = await res.text();
+            alert("요금 계산 실패: " + txt);
+            return;
+        }
+
+        const data = await res.json();
+        closeBillingModal();
+        renderBillingResult(data);
+    }
+
+
+    // ===== [추가] 사용량 수동저장 실행 함수 =====
+    async function saveSnapshot() {
+        if (!confirm("현재 설정(Config)과 사용량(Usage)을 수동 스냅샷으로 저장하시겠습니까?")) return;
+
+        // 로딩바가 있다면 표시
+        if (typeof showSpinner === "function") showSpinner(true);
+
+        try {
+            const res = await fetch("/api/snapshot/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                alert("✅ 저장 완료!\n파일명: " + data.filename + "\n위치: manual_archives");
+            } else {
+                alert("❌ 저장 실패: " + (data.error || "서버 오류"));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("❌ 네트워크 오류가 발생했습니다.");
+        } finally {
+            if (typeof showSpinner === "function") showSpinner(false);
+        }
+    }
+
+    function openArchiveBilling() {
+        // 다음 단계에서 이 URL(라우트)을 mce_admin_api.py에 추가할 예정
+        window.open("/archive_billing", "_blank");
+    }
+
+    function renderBillingResult(data) {
+        const summary = data.summary || {};
+        const users = data.users || [];
+        const params = data.params || {};
+
+        const E1 = params.base_amount_E1 || 0;
+        const target = summary.target_total || 0;
+        const common = params.common_prepaid_F21 || 0;
+        const personal = summary.sum_personal_prepaid || 0;
+        const collected = summary.sum_final || 0;
+        const checkTotal = summary.check_total_collected || 0;
+        const diff = (typeof target === "number" && typeof checkTotal === "number")
+            ? (checkTotal - target)
+            : 0;
+
+        document.getElementById("br-E1").textContent = `$${E1.toFixed(0)}`;
+        document.getElementById("br-target").textContent = `$${target.toFixed(0)}`;
+        document.getElementById("br-common").textContent = `$${common.toFixed(0)}`;
+        document.getElementById("br-personal").textContent = `$${personal.toFixed(0)}`;
+        document.getElementById("br-collected").textContent = `$${collected.toFixed(0)}`;
+
+        const diffSpan = document.getElementById("br-diff");
+        diffSpan.textContent = `$${diff.toFixed(0)}`;
+        diffSpan.classList.toggle("warn", Math.abs(diff) > 1e-6);
+
+        const tbody = document.getElementById("billing-users-tbody");
+        tbody.innerHTML = "";
+        users.forEach(u => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${u.display_name || u.name}</td>
+                <td>${ROLE_LABEL[u.role] || u.role}</td>
+                <td class="text-right">${(u.usage_gb || 0).toFixed(3)}</td>
+                <td class="text-right">${(u.base_fee || 0).toFixed(0)}</td>
+                <td class="text-right">${(u.variable_fee || 0).toFixed(0)}</td>
+                <td class="text-right">${(u.final_fee || 0).toFixed(0)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        const box = document.getElementById("billing-result");
+        box.style.display = "block";
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+        applyRoleUI();
+        loadUsers();
+        loadContractSettings();
+        startAutoRefreshUsers();
+    });
+
+</script>
+</body>
+</html>
