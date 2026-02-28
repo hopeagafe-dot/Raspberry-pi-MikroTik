@@ -1,0 +1,6 @@
+{
+   "billing_start_day": 1,
+   "pre_snapshot_seconds": 15,
+   "last_snapshot_yyyymm": "202601",
+   "last_reset_yyyymm": "202602"
+}
