@@ -844,9 +844,9 @@
     // ===== bytes <-> 단위 변환 유틸 =====
     function unitToMultiplier(unit) {
         switch (unit) {
-            case "GB": return 1024 * 1024 * 1024;
-            case "MB": return 1024 * 1024;
-            case "KB": return 1024;
+            case "GB": return 1000 * 1000 * 1000;
+            case "MB": return 1000 * 1000;
+            case "KB": return 1000;
             case "B":
             default:   return 1;
         }
@@ -857,17 +857,17 @@
         let value = bytes;
         let decimals = 0;
 
-        if (bytes >= 1024 * 1024 * 1024) {
+        if (bytes >= 1000 * 1000 * 1000) {
             unit = "GB";
-            value = bytes / (1024 * 1024 * 1024);
+            value = bytes / (1000 * 1000 * 1000);
             decimals = 4;
-        } else if (bytes >= 1024 * 1024) {
+        } else if (bytes >= 1000 * 1000) {
             unit = "MB";
-            value = bytes / (1024 * 1024);
+            value = bytes / (1000 * 1000);
             decimals = 3;
-        } else if (bytes >= 1024) {
+        } else if (bytes >= 1000) {
             unit = "KB";
-            value = bytes / 1024;
+            value = bytes / 1000;
             decimals = 2;
         } else {
             unit = "B";
@@ -882,8 +882,8 @@
         const units = ["B", "KB", "MB", "GB", "TB"];
         let u = 0;
         let v = bytes;
-        while (v >= 1024 && u < units.length - 1) {
-            v /= 1024;
+        while (v >= 1000 && u < units.length - 1) {
+            v /= 1000;
             u++;
         }
         return v.toFixed(u === 0 ? 0 : 2) + " " + units[u];
@@ -898,7 +898,7 @@
     function getRawUsageBytes(u) {
         if (u && typeof u.usage_bytes === "number" && Number.isFinite(u.usage_bytes)) return u.usage_bytes;
         const gb = parseFloat(u?.usage_gb || "0");
-        return Number.isFinite(gb) ? Math.round(gb * 1024 * 1024 * 1024) : 0;
+        return Number.isFinite(gb) ? Math.round(gb * 1000 * 1000 * 1000) : 0;
     }
 
     function getOffsetBytes(u) {
@@ -976,7 +976,7 @@
         const bytes = Math.max(0, rawBytes + offsetBytes); // ✅ 안전장치
 
         const info = chooseUnitForInput(bytes);
-        const progressGB = (bytes / (1024 * 1024 * 1024));
+        const progressGB = (bytes / (1000 * 1000 * 1000));
         const progress = u.limit_gb > 0 ? (progressGB / u.limit_gb * 100) : 0;
 
         // [삽입 시작]
@@ -1092,7 +1092,7 @@
 
             if (typeof u.usage_bytes !== "number") {
                 const gb = parseFloat(u.usage_gb || "0");
-                u.usage_bytes = isNaN(gb) ? 0 : Math.round(gb * 1024 * 1024 * 1024);
+                u.usage_bytes = isNaN(gb) ? 0 : Math.round(gb * 1000 * 1000 * 1000);
             }
         
             u._offset_bytes = asIntOr0(u._offset_bytes);
@@ -1579,7 +1579,7 @@
             }
         });
 
-        const sumGB = sumBytes / (1024 * 1024 * 1024);
+        const sumGB = sumBytes / (1000 * 1000 * 1000);
         const totalGB = getContractTotalGB();
         const textSpan = document.getElementById("usage-sum-text");
         if (textSpan) {
