@@ -62,7 +62,7 @@ BILLING_SETTINGS_PATH = os.path.join(DATA_DIR, "billing_settings.json")
 LOG_FILE = os.path.join(DATA_DIR, "collector.log")
 
 # raw_now = U + A + I
-TOL_SYNC_BYTES  = 100 * 1024 * 1024  # 100 MiB 허용오차(=104,857,600 bytes)
+TOL_SYNC_BYTES  = 100 * 1000 * 1000  # 100 MiB 허용오차(=104,857,600 bytes)
 
 # 일별 집계 파일(일자별 delta 누적)
 DAILY_JSON_PATH = os.path.join(DATA_DIR, "usage_daily.json")
@@ -71,31 +71,44 @@ DAILY_JSON_PATH = os.path.join(DATA_DIR, "usage_daily.json")
 MONTHLY_ARCHIVE_DIR = os.path.join(DATA_DIR, "monthly_archives")
 
 # 기간 시작시간은 최초 생성 시 동적으로 계산.
-# ~/mcepi_data/billing_start_day.txt 의 숫자(1~31)를 읽어
+# ~/mcepi_data/billing_date.json 의 billing_start_day(1~31)를 읽어
 # "현재 진행 중인 기간의 시작일(이번 달 또는 전달 ?일)"을 반환한다.
-# 파일이 없으면 이번 달 1일을 기본값으로 사용.
-BILLING_START_DAY_FILE = os.path.join(DATA_DIR, "billing_start_day.txt")
+#
+# billing_date.json 형식 예시 (※ 자동 생성/보정 없음, 없거나 깨지면 그대로 에러):
+# {
+#   "billing_start_day": 1,
+#   "pre_snapshot_seconds": 15,
+#   "last_snapshot_yyyymm": "202601",
+#   "last_reset_yyyymm": "202601"
+# }
+BILLING_DATE_PATH = os.path.join(DATA_DIR, "billing_date.json")
 
 def _load_billing_start_day() -> int:
-    """billing_start_day.txt 에서 기준일(1~31)을 읽어 반환. 없으면 1."""
-    try:
-        if os.path.exists(BILLING_START_DAY_FILE):
-            with open(BILLING_START_DAY_FILE, "r", encoding="utf-8") as _f:
-                _d = int(_f.read().strip())
-            if 1 <= _d <= 31:
-                return _d
-    except Exception:
-        pass
-    return 1
+    """
+    billing_date.json 에서 billing_start_day(1~31)를 읽어 반환.
+    - 자동 생성/복구/폴백 없음
+    - 파일이 없거나 JSON이 깨졌거나 값이 이상하면 그대로 예외 발생
+    """
+    with open(BILLING_DATE_PATH, "r", encoding="utf-8") as f:
+        d = json.load(f)
+
+    day = d["billing_start_day"]  # KeyError 가능(의도: 설정 파일이 틀리면 즉시 멈춤)
+
+    if not isinstance(day, int):
+        raise TypeError(f"billing_start_day must be int (got {type(day).__name__})")
+    if not (1 <= day <= 31):
+        raise ValueError(f"billing_start_day out of range 1~31 (got {day})")
+
+    return day
 
 def _get_default_period_start() -> str:
     """
-    billing_start_day.txt 의 기준일을 읽어
+    billing_date.json 의 기준일을 읽어
     현재 진행 중인 기간의 시작일 ISO 문자열을 반환한다.
 
     - 오늘 >= 이번 달 ?일  ->  이번 달 ?일 00:00:00Z
     - 오늘 <  이번 달 ?일  ->  전달 ?일 00:00:00Z
-    - 파일 없으면 이번 달 1일 반환
+    - billing_date.json이 없거나 값이 이상하면 예외 발생(폴백 없음)
     """
     import calendar as _cal
     start_day = _load_billing_start_day()
@@ -132,7 +145,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
-        RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=3),
+        RotatingFileHandler(LOG_FILE, maxBytes=5*1000*1000, backupCount=3),
         logging.StreamHandler()
     ]
 )
@@ -1144,7 +1157,7 @@ def main():
     print()
     for name in sorted(users_state.keys()):
         total_b = users_state[name]["total_bytes"]
-        total_gb = total_b / (1024 ** 3)
+        total_gb = total_b / (1000 ** 3)
         print(f"{name:10s}  {total_b:12d} bytes  ({total_gb:6.3f} GiB)")
 
 
