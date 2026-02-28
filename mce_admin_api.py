@@ -144,9 +144,22 @@ BILLING_RESULT_PATH = DATA_DIR / "result_billing.json"
 USER_CONFIG_PATH = DATA_DIR / "user_config.json"
 OVERWRITE_LOG_PATH = DATA_DIR / "usage_overwrite.log"
 BILLING_SETTINGS_PATH = DATA_DIR / "billing_settings.json"
-BILLING_START_DAY_PATH = DATA_DIR / "billing_start_day.txt"  # 매월 기준일(day) 숫자만 저장
-BILLING_ENGINE_PARAMS_PATH = DATA_DIR / "billing_engine_params.json"  # 요금 계산 엔진 상수 설정
 
+# 기간 시작시간은 최초 생성 시 동적으로 계산.
+# ~/mcepi_data/billing_date.json 의 billing_start_day(1~31)를 읽어
+# "현재 진행 중인 기간의 시작일(이번 달 또는 전달 ?일)"을 반환한다.
+#
+# billing_date.json 형식 예시 (※ 자동 생성/보정 없음, 없거나 깨지면 그대로 에러):
+# {
+#   "billing_start_day": 1,
+#   "pre_snapshot_seconds": 15,
+#   "last_snapshot_yyyymm": "202601",
+#   "last_reset_yyyymm": "202601"
+# }
+# 매월 기준일(day)이 여기에 들어 있음.
+BILLING_DATE_PATH = DATA_DIR / "billing_date.json"  # billing_date.json (자동 생성/폴백 없음)
+
+BILLING_ENGINE_PARAMS_PATH = DATA_DIR / "billing_engine_params.json"  # 요금 계산 엔진 상수 설정
 ADMIN_PASSWORD_FILE = BASE_DIR / "admin_password.txt"
 
 # ★ SUPER ADMIN 비밀번호 (수퍼관리자 전용)
@@ -184,7 +197,22 @@ def _safe_write_json(path: Path, data) -> None:
         os.fsync(f.fileno())
     os.replace(tmp, path)
 
+def _load_billing_date_raw() -> dict:
+    # 자동 생성/폴백 없음
+    with BILLING_DATE_PATH.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise ValueError("billing_date.json must be a JSON object")
+    return data
 
+def _get_billing_start_day() -> int:
+    d = _load_billing_date_raw()
+    day = d["billing_start_day"]  # KeyError 허용(설정이 틀리면 즉시 실패)
+    if not isinstance(day, int):
+        raise TypeError(f"billing_start_day must be int (got {type(day).__name__})")
+    if not (1 <= day <= 31):
+        raise ValueError(f"billing_start_day out of range 1~31 (got {day})")
+    return day
 
 def _ensure_json_file(path: Path, default: dict) -> dict:
     """
@@ -352,7 +380,7 @@ def load_usage_override():
                 gb = float(gb)
             except Exception:
                 gb = 0.0
-            total_bytes = int(gb * (1024 ** 3))
+            total_bytes = int(gb * (1000 ** 3))
 
         by_name[name] = {
             "total_bytes": total_bytes,
@@ -783,7 +811,7 @@ def api_users():
 
         # usage bytes
         usage_bytes = int(usage_bytes_map.get(name, 0)) if name in usage_bytes_map else 0
-        usage_gb = usage_bytes / (1024 ** 3)
+        usage_gb = usage_bytes / (1000 ** 3)
 
         # offset bytes (usage_public.users_by_name에서)
         offset_bytes = 0
@@ -1149,35 +1177,23 @@ def api_billing_period():
     return jsonify({"status": "ok"})
 
 
-# ===== /api/settings/billing_start_day: 기준일(day) 숫자 읽기/쓰기 =====
 @app.route("/api/settings/billing_start_day", methods=["GET", "POST"])
 def api_billing_start_day():
     """
-    billing_start_day.txt 에 저장된 '매월 기준일(1~31)' 숫자를 읽거나 갱신한다.
-    GET  → {"billing_start_day": <int>}
-    POST → {"billing_start_day": <int>}  (1~31 범위 검증)
-
-    collector가 billing_settings.json 안에 billing_start_day 필드도 갱신하므로,
-    GET 시 txt 파일이 없으면 billing_settings.json 의 해당 필드를 fallback으로 사용한다.
+    billing_date.json 에 저장된 billing_start_day(1~31)를 읽거나 갱신한다.
+    - 자동 생성/폴백 없음
+    - 파일이 없거나 JSON이 깨졌으면 GET/POST 모두 500으로 실패
     """
     if not require_login():
         return jsonify({"error": "unauthorized"}), 401
 
     if request.method == "GET":
-        # 1순위: billing_start_day.txt
-        if BILLING_START_DAY_PATH.exists():
-            try:
-                day = int(BILLING_START_DAY_PATH.read_text(encoding="utf-8").strip())
-                if 1 <= day <= 31:
-                    return jsonify({"billing_start_day": day})
-            except Exception:
-                pass
-        # 2순위: billing_settings.json 내 billing_start_day 필드
-        settings = load_billing_settings()
-        day_fallback = settings.get("billing_start_day")
-        if day_fallback and isinstance(day_fallback, int) and 1 <= day_fallback <= 31:
-            return jsonify({"billing_start_day": day_fallback})
-        return jsonify({"billing_start_day": None})
+        try:
+            day = _get_billing_start_day()
+            return jsonify({"billing_start_day": day})
+        except Exception as e:
+            # 숨기지 않고, 실패 사실을 명확히 반환
+            return jsonify({"error": f"billing_date.json read failed: {e}"}), 500
 
     # POST
     data = request.get_json(silent=True) or {}
@@ -1190,22 +1206,14 @@ def api_billing_start_day():
     if not (1 <= day_val <= 31):
         return jsonify({"error": "billing_start_day out of range (1~31)"}), 400
 
-    # billing_start_day.txt 저장
     try:
-        BILLING_START_DAY_PATH.parent.mkdir(parents=True, exist_ok=True)
-        BILLING_START_DAY_PATH.write_text(str(day_val), encoding="utf-8")
+        bd = _load_billing_date_raw()  # 파일 없으면 여기서 그대로 실패(500)
+        bd["billing_start_day"] = day_val
+        _safe_write_json(BILLING_DATE_PATH, bd)  # 기존 내용 유지 + 해당 키만 갱신
+        return jsonify({"status": "ok", "billing_start_day": day_val})
     except Exception as e:
-        return jsonify({"error": f"write failed: {e}"}), 500
+        return jsonify({"error": f"billing_date.json write failed: {e}"}), 500
 
-    # billing_settings.json 에도 동기화 (collector가 참조)
-    try:
-        settings = load_billing_settings()
-        settings["billing_start_day"] = day_val
-        save_billing_settings(settings)
-    except Exception as e:
-        app.logger.warning(f"billing_settings.json sync failed: {e}")
-
-    return jsonify({"status": "ok", "billing_start_day": day_val})
 
 
 # ===== /api/settings/billing_engine_params: 요금 계산 엔진 상수 =====
@@ -1308,7 +1316,7 @@ def _run_billing_engine(usage_source, user_cfg, E1, F16, F21, billing_period_sta
             # if b_eff < 0:
             #     b_eff = 0
 
-            gb = b_eff / (1024 ** 3)
+            gb = b_eff / (1000 ** 3)
 
         else:
             gb_val = u.get("total_gb", u.get("usage_gb", 0.0))
