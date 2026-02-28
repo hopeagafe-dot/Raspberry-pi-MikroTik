@@ -721,7 +721,7 @@ function buildPreviewRows(snap) {
       try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) { offB = 0; }
       if (!Number.isFinite(offB)) offB = 0;
       const effB = Math.max(0, b + offB);
-      gb = effB / (1024 ** 3);
+      gb = effB / (1000 ** 3);
     } else {
       const gbVal = u?.total_gb ?? u?.usage_gb ?? 0.0;
       gb = toNumber(gbVal, 0.0);
@@ -751,7 +751,7 @@ function buildPreviewRows(snap) {
       let initB = 0;
       try { initB = parseInt(u.initial_usage_bytes ?? 0, 10); } catch(e) { initB = 0; }
       if (!Number.isFinite(initB)) initB = 0;
-      initGb = initB / (1024 ** 3);
+      initGb = initB / (1000 ** 3);
     } else {
       initGb = toNumber(u?.initial_usage_gb, 0.0);
     }
@@ -812,7 +812,7 @@ function billingEngineLikeServer(snap, E1, F16, F21, ep) {
       try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) { offB = 0; }
       if (!Number.isFinite(offB)) offB = 0;
       const effB = Math.max(0, b + offB);
-      gb = effB / (1024 ** 3);
+      gb = effB / (1000 ** 3);
     } else {
       const gbVal = u?.total_gb ?? u?.usage_gb ?? 0.0;
       gb = toNumber(gbVal, 0.0);
@@ -842,7 +842,7 @@ function billingEngineLikeServer(snap, E1, F16, F21, ep) {
       let initB = 0;
       try { initB = parseInt(u.initial_usage_bytes ?? 0, 10); } catch(e) { initB = 0; }
       if (!Number.isFinite(initB)) initB = 0;
-      initGb = initB / (1024 ** 3);
+      initGb = initB / (1000 ** 3);
     } else {
       initGb = toNumber(u?.initial_usage_gb, 0.0);
     }
