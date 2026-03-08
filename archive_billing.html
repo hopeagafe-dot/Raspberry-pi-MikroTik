@@ -1,5 +1,7 @@
 <!doctype html>
 <html lang="ko">
+<head><!doctype html>
+<html lang="ko">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -188,13 +190,11 @@
 
     .inputs {
       display:grid;
-      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
       margin-top: 8px;
     }
-    @media (max-width: 980px) {
-      .inputs { grid-template-columns: 1fr; }
-    }
+    /* inputs 3칸 고정 — 창 크기 무관 */
     .field {
       border: 1px solid var(--line);
       border-radius: 14px;
@@ -243,6 +243,183 @@
       font-size: 12px;
       text-align: center;
     }
+    
+    /* === 반응형 미디어 쿼리 (usage_graph.html 수준) === */
+    
+    /* 태블릿 (769px ~ 1024px) */
+    @media (max-width: 1024px) and (min-width: 769px) {
+      .container {
+        padding: 20px;
+      }
+      
+      .grid {
+        gap: 12px;
+      }
+      
+      table {
+        font-size: 12px;
+      }
+      
+      th, td {
+        padding: 8px;
+      }
+      
+      .tablewrap {
+        overflow-x: auto;
+      }
+    }
+    
+    /* 모바일 (< 768px) */
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px;
+      }
+      
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      
+      .inputs {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      
+      .panel .hd {
+        padding: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .panel .bd {
+        padding: 12px;
+      }
+      
+      table {
+        font-size: 11px;
+      }
+      
+      th, td {
+        padding: 8px 6px;
+      }
+      
+      .tablewrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      .kv {
+        grid-template-columns: 120px 1fr;
+        gap: 6px 8px;
+        font-size: 12px;
+      }
+      
+      .filelist {
+        max-height: 400px;
+      }
+      
+      .file .name {
+        font-size: 11px;
+      }
+    }
+    
+    /* 작은 모바일 (< 480px) */
+    @media (max-width: 480px) {
+      .container {
+        padding: 12px;
+      }
+      
+      .hd .h {
+        font-size: 13px;
+      }
+      
+      .panel .hd {
+        padding: 10px;
+      }
+      
+      .panel .bd {
+        padding: 10px;
+      }
+      
+      table {
+        font-size: 10px;
+      }
+      
+      th, td {
+        padding: 6px 4px;
+      }
+      
+      .kv {
+        grid-template-columns: 100px 1fr;
+        gap: 4px 6px;
+        font-size: 11px;
+      }
+      
+      .kv .v {
+        font-size: 11px;
+      }
+      
+      .btn, button {
+        font-size: 11px;
+        padding: 8px 12px;
+      }
+      
+      .tabs {
+        gap: 6px;
+      }
+      
+      .tab {
+        font-size: 11px;
+        padding: 6px 8px;
+      }
+      
+      .file {
+        padding: 8px;
+      }
+      
+      .file .name {
+        font-size: 10px;
+      }
+      
+      .file .meta {
+        font-size: 10px;
+      }
+      
+      .filelist {
+        max-height: 300px;
+      }
+    }
+    
+    /* 가로모드 (작은 화면) */
+    @media (max-height: 600px) and (orientation: landscape) {
+      .container {
+        padding: 12px 16px;
+      }
+      
+      .panel .hd {
+        padding: 10px 12px;
+      }
+      
+      .panel .bd {
+        padding: 10px 12px;
+      }
+      
+      .filelist {
+        max-height: 300px;
+      }
+      
+      table {
+        font-size: 11px;
+      }
+      
+      th, td {
+        padding: 6px 8px;
+      }
+      
+      .grid {
+        gap: 10px;
+      }
+    }
   </style>
 </head>
 
@@ -287,6 +464,7 @@
           <div class="sh">
             <div class="h2">Snapshot Info</div>
             <div class="row-actions">
+              <button class="btn" id="btnCopyOffset" disabled style="display:none; background:rgba(251,191,36,0.18); border-color:rgba(251,191,36,0.45);" title="선택 파일의 total_bytes → usage_public.json의 _offset_bytes 에 복사 (SUPERADMIN 전용)">⚙ Offset 복사</button>
               <button class="btn" id="btnLoad" disabled>선택 파일 Load</button>
             </div>
           </div>
@@ -294,10 +472,7 @@
           <div class="kv">
             <div class="k">kind</div><div class="v" id="metaKind">-</div>
             <div class="k">filename</div><div class="v" id="metaFile">-</div>
-            <div class="k">snapshot_type</div><div class="v" id="metaType">-</div>
             <div class="k">timestamp</div><div class="v" id="metaTs">-</div>
-            <div class="k">period_start_utc</div><div class="v" id="metaPeriod">-</div>
-            <div class="k">last_updated_utc</div><div class="v" id="metaUpdated">-</div>
           </div>
 
           <div class="msg" id="rightMsg">좌측에서 파일을 선택하세요.</div>
@@ -325,7 +500,6 @@
 
           <div class="row-actions">
             <button class="btn primary" id="btnCalc" disabled>정산 실행 (로컬 계산)</button>
-            <button class="btn" id="btnCsv" disabled>CSV 다운로드</button>
           </div>
 
           <div class="msg" id="billMsg">기본값은 /api/billing 의 최근 params를 읽어 자동 채웁니다.</div>
@@ -333,7 +507,7 @@
 
         <div class="section">
           <div class="sh">
-            <div class="h2">Users Preview (Config + Usage)</div>
+            <div class="h2">USAGE Preview</div>
           </div>
           <div class="tablewrap">
             <table id="tblPreview">
@@ -345,8 +519,8 @@
                                     <th>limit_gb</th>
                   <th>usage_gb</th>
                   <th>D</th>
-                  <th>personal_prepaid</th>
-                  <th>override</th>
+                  <th>personal_prepaid ✎</th>
+                  <th>override ✎</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -357,6 +531,9 @@
         <div class="section">
           <div class="sh">
             <div class="h2">Billing Result</div>
+            <div class="row-actions">
+              <button class="btn" id="btnCsv" disabled>CSV 다운로드</button>
+            </div>
           </div>
           <div class="tablewrap">
             <table id="tblResult">
@@ -369,8 +546,8 @@
                   <th>D</th>
                   <th>base_fee</th>
                   <th>variable_fee</th>
-                  <th>personal_prepaid</th>
                   <th>final_fee</th>
+                  <th>$/G</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -420,40 +597,23 @@
           padding:16px 18px; margin-bottom:14px;
           background:rgba(154,210,255,0.05);">
           <div style="font-size:13px; font-weight:900; color:#9ad2ff; margin-bottom:12px;">
-            👤 Manager (선장/항해사급) 요금 규칙
+            🖥️ Manager (MCE Starlink 관리자) 요금 규칙
           </div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            <div>
-              <label style="display:block; font-size:11px; color:#9fb0d0; font-weight:700; margin-bottom:4px;">
-                under_limit_deduction (D &lt; 1.0 일 때 E1 차감액)
-              </label>
-              <div style="font-size:10px; color:#7aa2ff; margin-bottom:6px; line-height:1.4;">
-                사용량이 한도 미만(D&lt;1)인 매니저에게<br/>
-                기준금액(E1)에서 이 금액을 빼줍니다.<br/>
-                예: E1=80, deduction=60 → base=20
-              </div>
-              <input id="ep_mg_under_ded" type="number" step="0.01" min="0"
-                style="width:100%; padding:10px; border-radius:10px;
-                border:1px solid rgba(255,255,255,0.1);
-                background:rgba(0,0,0,0.25); color:#e9eefc;
-                font-family:ui-monospace,monospace; font-size:13px;"/>
+          <div style="max-width:360px;">
+            <label style="display:block; font-size:11px; color:#9fb0d0; font-weight:700; margin-bottom:4px;">
+              final_deduction (최종 요금 차감액 $)
+            </label>
+            <div style="font-size:10px; color:#7aa2ff; margin-bottom:6px; line-height:1.4;">
+              관리자(MCE)는 일반 crew와 동일하게 base_fee + variable_fee로<br/>
+              계산한 후, 최종 금액에서 이 금액을 차감합니다.<br/>
+              예: final_fee=160, deduction=30 → 최종=130
             </div>
-            <div>
-              <label style="display:block; font-size:11px; color:#9fb0d0; font-weight:700; margin-bottom:4px;">
-                over_limit_fixed_fee (D ≥ 1.0 일 때 고정 요금)
-              </label>
-              <div style="font-size:10px; color:#7aa2ff; margin-bottom:6px; line-height:1.4;">
-                사용량이 한도 초과(D≥1)인 매니저에게<br/>
-                E1 무시하고 이 금액을 고정 부과합니다.<br/>
-                예: fixed=110 → base=110 (항상)
-              </div>
-              <input id="ep_mg_over_fixed" type="number" step="0.01" min="0"
-                style="width:100%; padding:10px; border-radius:10px;
-                border:1px solid rgba(255,255,255,0.1);
-                background:rgba(0,0,0,0.25); color:#e9eefc;
-                font-family:ui-monospace,monospace; font-size:13px;"/>
-            </div>
+            <input id="ep_mg_final_ded" type="number" step="0.01" min="0"
+              style="width:100%; padding:10px; border-radius:10px;
+              border:1px solid rgba(255,255,255,0.1);
+              background:rgba(0,0,0,0.25); color:#e9eefc;
+              font-family:ui-monospace,monospace; font-size:13px;"/>
           </div>
         </div>
 
@@ -590,7 +750,7 @@ let lastBillingResult = null;
 
 // ===== 요금 엔진 파라미터 (billing_engine_params.json에서 로드) =====
 let engineParams = {
-  manager:    { under_limit_deduction: 60, over_limit_fixed_fee: 110 },
+  manager:    { final_deduction: 30 },
   crew:       { over_limit_surcharge: 5, lowest_usage_deduction: 5, under_half_threshold: 0.5, under_half_deduction: 10 },
   apprentice: { rate: 0.5 }
 };
@@ -639,13 +799,27 @@ function escapeHtml(s) {
   }[c]));
 }
 
-async function fetchJSON(url, opts={}) {
-  const res = await fetch(url, opts);
-  if (!res.ok) {
-    const t = await res.text().catch(()=> "");
-    throw new Error(`HTTP ${res.status}: ${t || res.statusText}`);
+async function fetchJSON(url, opts={}, timeoutMs=12000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...opts, signal: controller.signal });
+    clearTimeout(timer);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      throw new Error("세션 만료 — 로그인 페이지로 이동합니다.");
+    }
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status}: ${t || res.statusText}`);
+    }
+    return await res.json();
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === "AbortError")
+      throw new Error("서버 응답 없음(타임아웃). Flask가 단일스레드로 막혀있을 수 있습니다. mce_admin_api.py를 재시작하세요.");
+    throw e;
   }
-  return await res.json();
 }
 
 function normalizeUsagePublic(obj) {
@@ -677,6 +851,19 @@ function normalizeUsagePublic(obj) {
   return { ...usage, users: [] };
 }
 
+// ===== comment/name 기반 역할 추론 (컨펌 C 수정 버전) =====
+function inferRole(name, comment) {
+    const n = (name || "").toLowerCase();
+    const c = (comment || "").toLowerCase();
+    if (n.includes("default")) return "public";
+    if (n.includes("public"))  return "public";
+    if (n.includes("manager")) return "manager";
+    if (c.includes("manager")) return "manager";
+    if (c.includes("apprentice")) return "apprentice";
+    if (c.includes("public"))  return "public";
+    return "crew";
+}
+
 function extractUserCfg(snap) {
   // expected: snap.user_config.users (list)
   const uc = snap?.user_config || snap?.user_cfg || snap?.config || null;
@@ -704,6 +891,45 @@ function extractUsagePublic(snap) {
 }
 
 function buildPreviewRows(snap) {
+  // 신규 포맷 우선: snap.users에 comment/limit_gb 포함
+  // 구형 포맷 호환: snap.user_config.users / snap.usage_public
+  const hasNewFormat = Array.isArray(snap?.users) && snap.users.length > 0 && snap.users[0]?.comment !== undefined;
+
+  if (hasNewFormat) {
+    // 신규 포맷: {user, comment, limit_gb, total_bytes, _last_raw_bytes, _offset_bytes}
+    const rows = [];
+    for (const u of snap.users) {
+      const name = u?.user;
+      if (!name) continue;
+      const comment = u?.comment ?? "";
+      const role = inferRole(name, comment);
+      if (role === "public") continue;
+
+      let effB = 0;
+      try {
+        const b = parseInt(u.total_bytes ?? 0, 10) || 0;
+        const off = parseInt(u._offset_bytes ?? 0, 10) || 0;
+        effB = Math.max(0, b + off);
+      } catch(e) { effB = 0; }
+      const usageGb = effB / (1000 ** 3);
+      const limit = toNumber(u?.limit_gb, 100.0);
+      const D = (limit > 0) ? (usageGb / limit) : 0.0;
+
+      rows.push({
+        name,
+        display_name: comment || name,
+        role,
+        limit_gb: limit,
+        usage_gb: usageGb,
+        D,
+        personal_prepaid: 0.0,
+        base_fee_override: null
+      });
+    }
+    return rows;
+  }
+
+  // 구형 호환 경로
   const usage = extractUsagePublic(snap);
   const cfg = extractUserCfg(snap);
 
@@ -711,7 +937,6 @@ function buildPreviewRows(snap) {
   for (const u of (usage.users || [])) {
     const name = u?.user;
     if (!name) continue;
-
     let gb = 0.0;
     if (u && Object.prototype.hasOwnProperty.call(u, "total_bytes")) {
       let b = 0;
@@ -720,11 +945,9 @@ function buildPreviewRows(snap) {
       let offB = 0;
       try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) { offB = 0; }
       if (!Number.isFinite(offB)) offB = 0;
-      const effB = Math.max(0, b + offB);
-      gb = effB / (1000 ** 3);
+      gb = Math.max(0, b + offB) / (1000 ** 3);
     } else {
-      const gbVal = u?.total_gb ?? u?.usage_gb ?? 0.0;
-      gb = toNumber(gbVal, 0.0);
+      gb = toNumber(u?.total_gb ?? u?.usage_gb, 0.0);
     }
     usageMap[name] = gb;
   }
@@ -733,27 +956,25 @@ function buildPreviewRows(snap) {
   for (const u of (cfg.users || [])) {
     const name = u?.user;
     if (!name) continue;
-
-    const role = u?.role ?? "crew";    if (role === "public") continue;
-    const display = u?.display_name ?? name;
-    const limit = toNumber(u?.limit_gb, 100.0);    const personal = toNumber(u?.personal_prepaid, 0.0);
+    const comment = u?.comment ?? "";
+    const role = u?.role ?? inferRole(name, comment);
+    if (role === "public") continue;
+    const display = (u?.display_name != null && u?.display_name !== "") ? u.display_name : (comment || name);
+    const limit = toNumber(u?.limit_gb, 100.0);
+    const personal = toNumber(u?.personal_prepaid, 0.0);
     const override = (u && Object.prototype.hasOwnProperty.call(u, "base_fee_override")) ? u.base_fee_override : null;
 
-
-    // ✅ minimal snapshot 지원: snap.users 에 total_bytes 가 있으면 raw usage로 사용
-    let totalBytes = null;
-    if (u && Object.prototype.hasOwnProperty.call(u, "total_bytes")) {
-      try { totalBytes = parseInt(u.total_bytes ?? 0, 10); } catch(e) { totalBytes = 0; }
-      if (!Number.isFinite(totalBytes)) totalBytes = 0;
-    }
-    let initGb = 0.0;
+    let initGb = toNumber(u?.initial_usage_gb, 0.0);
     if (u && Object.prototype.hasOwnProperty.call(u, "initial_usage_bytes")) {
       let initB = 0;
       try { initB = parseInt(u.initial_usage_bytes ?? 0, 10); } catch(e) { initB = 0; }
-      if (!Number.isFinite(initB)) initB = 0;
-      initGb = initB / (1000 ** 3);
-    } else {
-      initGb = toNumber(u?.initial_usage_gb, 0.0);
+      if (Number.isFinite(initB)) initGb = initB / (1000 ** 3);
+    }
+    if (u && Object.prototype.hasOwnProperty.call(u, "total_bytes")) {
+      let b = 0, offB = 0;
+      try { b = parseInt(u.total_bytes ?? 0, 10); } catch(e) {}
+      try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) {}
+      initGb = Math.max(0, b + offB) / (1000 ** 3);
     }
 
     const usageGb = (name in usageMap) ? usageMap[name] : initGb;
@@ -761,8 +982,7 @@ function buildPreviewRows(snap) {
 
     rows.push({
       name, display_name: display, role,
-      limit_gb: limit,
-      usage_gb: usageGb,
+      limit_gb: limit, usage_gb: usageGb,
       D, personal_prepaid: personal,
       base_fee_override: override
     });
@@ -782,40 +1002,71 @@ function renderPreview(rows) {
       <td class="mono">${escapeHtml(r.name)}</td>
       <td>${escapeHtml(r.display_name)}</td>
       <td class="mono">${escapeHtml(r.role)}</td>
-<td class="mono">${fmt(r.limit_gb, 1)}</td>
+      <td class="mono">${fmt(r.limit_gb, 1)}</td>
       <td class="mono">${fmt(r.usage_gb, 3)}</td>
       <td class="mono">${fmt(r.D, 4)}</td>
-      <td class="mono">${fmt(r.personal_prepaid, 2)}</td>
-      <td class="mono">${r.base_fee_override === null || r.base_fee_override === undefined ? "" : escapeHtml(r.base_fee_override)}</td>
+      <td class="mono"><input type="number" step="0.01" min="0"
+        style="width:80px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);
+               border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;
+               padding:4px 6px;text-align:right;"
+        data-prepaid="${escapeHtml(r.name)}"
+        value="${fmt(r.personal_prepaid, 2)}"/></td>
+      <td class="mono"><input type="number" step="0.01"
+        style="width:80px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);
+               border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;
+               padding:4px 6px;text-align:right;"
+        data-override="${escapeHtml(r.name)}"
+        placeholder="-"
+        value="${r.base_fee_override === null || r.base_fee_override === undefined ? "" : r.base_fee_override}"/></td>
     `;
     tb.appendChild(tr);
   }
 }
 
-function billingEngineLikeServer(snap, E1, F16, F21, ep) {
-  // This is a JS port of mce_admin_api.py _run_billing_engine()
-  // ref: billing rules in uploaded mce_admin_api.py
-  const usage = extractUsagePublic(snap);
-  const cfg = extractUserCfg(snap);
+function getPersonalPrepaidMap() {
+  const map = {};
+  document.querySelectorAll("[data-prepaid]").forEach(inp => {
+    map[inp.dataset.prepaid] = toNumber(inp.value, 0);
+  });
+  return map;
+}
+
+function getOverrideMap() {
+  const map = {};
+  document.querySelectorAll("[data-override]").forEach(inp => {
+    const v = inp.value.trim();
+    if (v !== "") {
+      const n = parseFloat(v);
+      if (Number.isFinite(n)) map[inp.dataset.override] = n;
+    }
+  });
+  return map;
+}
+
+function billingEngineLikeServer(snap, E1, F16, F21, ep, prepaidMap, overrideMap) {
+  // JS port of mce_admin_api.py _run_billing_engine()
+  // 신규 포맷: snap.users에 {user, comment, limit_gb, total_bytes, _offset_bytes}
+  // 구형 포맷: snap.user_config.users + snap.usage_public 호환
+
+  const hasNewFormat = Array.isArray(snap?.users) && snap.users.length > 0 && snap.users[0]?.comment !== undefined;
+
+  const usage = hasNewFormat ? { users: snap.users } : extractUsagePublic(snap);
+  const cfg = hasNewFormat ? { users: snap.users } : extractUserCfg(snap);
 
   const usageMap = {};
   for (const u of (usage.users || [])) {
     const name = u?.user;
     if (!name) continue;
-
     let gb = 0.0;
     if (u && Object.prototype.hasOwnProperty.call(u, "total_bytes")) {
-      let b = 0;
-      try { b = parseInt(u.total_bytes ?? 0, 10); } catch(e) { b = 0; }
+      let b = 0, offB = 0;
+      try { b = parseInt(u.total_bytes ?? 0, 10); } catch(e) {}
       if (!Number.isFinite(b)) b = 0;
-      let offB = 0;
-      try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) { offB = 0; }
+      try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) {}
       if (!Number.isFinite(offB)) offB = 0;
-      const effB = Math.max(0, b + offB);
-      gb = effB / (1000 ** 3);
+      gb = Math.max(0, b + offB) / (1000 ** 3);
     } else {
-      const gbVal = u?.total_gb ?? u?.usage_gb ?? 0.0;
-      gb = toNumber(gbVal, 0.0);
+      gb = toNumber(u?.total_gb ?? u?.usage_gb, 0.0);
     }
     usageMap[name] = gb;
   }
@@ -824,37 +1075,28 @@ function billingEngineLikeServer(snap, E1, F16, F21, ep) {
   for (const u of (cfg.users || [])) {
     const name = u?.user;
     if (!name) continue;
-
-    const role = u?.role ?? "crew";    if (role === "public") continue;
-    const displayName = u?.display_name ?? name;
-    const limitGb = toNumber(u?.limit_gb, 100.0);    const personalPrepaid = toNumber(u?.personal_prepaid, 0.0);
+    const comment = u?.comment ?? "";
+    const role = u?.role ?? inferRole(name, comment);
+    if (role === "public") continue;
+    const displayName = (u?.display_name != null && u?.display_name !== "") ? u.display_name : (comment || name);
+    const limitGb = toNumber(u?.limit_gb, 100.0);
+    const personalPrepaid = (prepaidMap && name in prepaidMap)
+      ? toNumber(prepaidMap[name], 0.0)
+      : toNumber(u?.personal_prepaid, 0.0);
     const baseFeeOverride = (u && Object.prototype.hasOwnProperty.call(u, "base_fee_override")) ? u.base_fee_override : null;
 
-
-    // ✅ minimal snapshot 지원: snap.users 에 total_bytes 가 있으면 raw usage로 사용
-    let totalBytes = null;
-    if (u && Object.prototype.hasOwnProperty.call(u, "total_bytes")) {
-      try { totalBytes = parseInt(u.total_bytes ?? 0, 10); } catch(e) { totalBytes = 0; }
-      if (!Number.isFinite(totalBytes)) totalBytes = 0;
-    }
-    let initGb = 0.0;
+    let initGb = toNumber(u?.initial_usage_gb, 0.0);
     if (u && Object.prototype.hasOwnProperty.call(u, "initial_usage_bytes")) {
       let initB = 0;
-      try { initB = parseInt(u.initial_usage_bytes ?? 0, 10); } catch(e) { initB = 0; }
-      if (!Number.isFinite(initB)) initB = 0;
-      initGb = initB / (1000 ** 3);
-    } else {
-      initGb = toNumber(u?.initial_usage_gb, 0.0);
+      try { initB = parseInt(u.initial_usage_bytes ?? 0, 10); } catch(e) {}
+      if (Number.isFinite(initB)) initGb = initB / (1000 ** 3);
     }
 
     const usageGb = (name in usageMap) ? usageMap[name] : initGb;
 
     rawUsers.push({
-      name,
-      display_name: displayName,
-      role,
-      limit_gb: limitGb,
-      usage_gb: usageGb,
+      name, display_name: displayName, role,
+      limit_gb: limitGb, usage_gb: usageGb,
       personal_prepaid: personalPrepaid,
       base_fee_override: baseFeeOverride
     });
@@ -862,12 +1104,13 @@ function billingEngineLikeServer(snap, E1, F16, F21, ep) {
 
   if (rawUsers.length === 0) {
     return {
-      period_start_utc: usage.period_start_utc,
-      last_updated_utc: usage.last_updated_utc,
+      period_start_utc: snap?.period_start_utc ?? null,
+      last_updated_utc: snap?.last_updated_utc ?? null,
       params: { base_amount_E1: E1, target_total_F16: F16, common_prepaid_F21: F21 },
       summary: { target_total: F16 },
       users: []
     };
+
   }
 
   for (const u of rawUsers) {
@@ -880,61 +1123,75 @@ function billingEngineLikeServer(snap, E1, F16, F21, ep) {
   const _mg  = _ep?.manager    || {};
   const _cr  = _ep?.crew       || {};
   const _ap  = _ep?.apprentice || {};
-  const mgUnderDed  = (_mg.under_limit_deduction  ?? 60);
-  const mgOverFixed = (_mg.over_limit_fixed_fee    ?? 110);
-  const crOverSur   = (_cr.over_limit_surcharge    ?? 5);
-  const crLowDed    = (_cr.lowest_usage_deduction  ?? 5);
-  const crHalfThr   = (_cr.under_half_threshold    ?? 0.5);
-  const crHalfDed   = (_cr.under_half_deduction    ?? 10);
-  const apRate      = (_ap.rate                    ?? 0.5);
+  const mgFinalDed  = (_mg.final_deduction      ?? 30);   // manager 최종 차감액
+  const crOverSur   = (_cr.over_limit_surcharge ?? 5);
+  const crLowDed    = (_cr.lowest_usage_deduction ?? 5);
+  const crHalfThr   = (_cr.under_half_threshold ?? 0.5);
+  const crHalfDed   = (_cr.under_half_deduction ?? 10);
+  const apRate      = (_ap.rate                 ?? 0.5);
 
   for (const u of rawUsers) {
     const D = u.D;
     let base = E1;
 
-    if (u.role === "manager") {
-      base = (D < 1.0) ? (E1 - mgUnderDed) : mgOverFixed;
-    } else {
-      if (D >= 1.0) base = E1 + crOverSur;
-      else if (Math.abs(D - minD) < 1e-12) base = E1 - crLowDed;
-      else if (D < crHalfThr) base = E1 - crHalfDed;
-      // else base = E1
-    }
+    // manager는 crew와 동일한 base_fee 규칙 적용
+    if (D >= 1.0)                        base = E1 + crOverSur;
+    else if (Math.abs(D - minD) < 1e-12) base = E1 - crLowDed;
+    else if (D < crHalfThr)              base = E1 - crHalfDed;
+    // else base = E1
 
     if (u.role === "apprentice") base *= apRate;
 
-    if (u.base_fee_override !== null && u.base_fee_override !== undefined) {
-      const ov = parseFloat(u.base_fee_override);
-      if (Number.isFinite(ov)) base = ov;
-    }
+    // override: UI 입력값 우선, 그 다음 스냅샷 값
+    const ovVal = (overrideMap && u.name in overrideMap)
+      ? overrideMap[u.name]
+      : (u.base_fee_override !== null && u.base_fee_override !== undefined
+          ? parseFloat(u.base_fee_override) : null);
+    if (ovVal !== null && Number.isFinite(ovVal)) base = ovVal;
 
-    // server uses round(base,2)
     u.base_fee = pyRound(base, 2);
   }
 
-  const E_total = rawUsers.reduce((s,u)=> s + (u.base_fee || 0), 0);
-  const usageSum = rawUsers.reduce((s,u)=> s + (u.usage_gb || 0), 0);
-  const sumPersonal = rawUsers.reduce((s,u)=> s + (u.personal_prepaid || 0), 0);
+  // ── 사용자 분류 ──
+  // 1) 선불확정: personal_prepaid > 0 → final_fee = personal_prepaid (고정)
+  // 2) 나머지 전원(manager 포함): variable pool 참여
+  //    → manager는 variable까지 계산 후 마지막에 final_deduction 차감
+  const prepaidUsers  = rawUsers.filter(u => (u.personal_prepaid || 0) > 0);
+  const variableUsers = rawUsers.filter(u => (u.personal_prepaid || 0) <= 0);
 
-  let remainingPool = F16 - E_total - F21 - sumPersonal;
+  // 선불확정자: variable = 0, final = personal_prepaid
+  for (const u of prepaidUsers) {
+    u.variable_fee = 0;
+    u.final_fee    = pyRound(u.personal_prepaid, 2);
+  }
+
+  // pool 계산
+  const sumPersonal      = prepaidUsers.reduce((s,u)  => s + (u.personal_prepaid || 0), 0);
+  const E_total_variable = variableUsers.reduce((s,u) => s + (u.base_fee || 0), 0);
+  const E_total          = rawUsers.reduce((s,u)      => s + (u.base_fee || 0), 0);
+  const usageSumVariable = variableUsers.reduce((s,u) => s + (u.usage_gb || 0), 0);
+  const usageSum         = rawUsers.reduce((s,u)      => s + (u.usage_gb || 0), 0);
+
+  // pool = F16 - F21 - 선불합계 - variable사용자 base합계
+  let remainingPool = F16 - F21 - sumPersonal - E_total_variable;
   if (!Number.isFinite(remainingPool) || remainingPool < 0) remainingPool = 0;
 
-  for (const u of rawUsers) {
+  for (const u of variableUsers) {
     let varFee = 0.0;
-    if (usageSum > 0) {
-      varFee = remainingPool * (u.usage_gb / usageSum);
-      // server uses round(var_fee) with no ndigits
+    if (usageSumVariable > 0) {
+      varFee = remainingPool * (u.usage_gb / usageSumVariable);
       varFee = pyRound(varFee, 0);
     }
     u.variable_fee = varFee;
-
-    const final = (u.base_fee || 0) + (u.variable_fee || 0) - (u.personal_prepaid || 0);
+    let final = (u.base_fee || 0) + (u.variable_fee || 0);
+    // manager: 최종에서 final_deduction 차감
+    if (u.role === "manager") final = Math.max(0, final - mgFinalDed);
     u.final_fee = pyRound(final, 2);
   }
 
   const sumVariable = rawUsers.reduce((s,u)=> s + (u.variable_fee || 0), 0);
-  const sumFinal = rawUsers.reduce((s,u)=> s + (u.final_fee || 0), 0);
-  const checkTotal = pyRound(sumFinal + F21 + sumPersonal, 2);
+  const sumFinal    = rawUsers.reduce((s,u)=> s + (u.final_fee    || 0), 0);
+  const checkTotal  = pyRound(sumFinal + F21, 2);
 
   const summary = {
     E_total: pyRound(E_total, 2),
@@ -972,17 +1229,31 @@ function renderResult(result) {
   users.sort((a,b) => (a.name > b.name ? 1 : -1));
 
   for (const u of users) {
+    const isPrepaid  = (u.personal_prepaid || 0) > 0;
+    const isManager  = u.role === "manager" && !isPrepaid;
+    const rate       = (u.usage_gb > 0) ? ((u.final_fee || 0) / u.usage_gb).toFixed(2) : "-";
     const tr = document.createElement("tr");
+    if (isPrepaid) {
+      tr.style.background  = "rgba(251,191,36,0.10)";
+      tr.style.borderLeft  = "3px solid rgba(251,191,36,0.55)";
+    } else if (isManager) {
+      tr.style.background  = "rgba(154,210,255,0.08)";
+      tr.style.borderLeft  = "3px solid rgba(154,210,255,0.45)";
+    }
+    const managerBadge = isManager
+      ? ' <span style="font-size:10px;color:#9ad2ff;font-weight:900;margin-left:4px;">관리자할인</span>' : '';
+    const prepaidBadge = isPrepaid
+      ? ' <span style="font-size:10px;color:#fbbf24;font-weight:900;margin-left:4px;">선불확정</span>' : '';
     tr.innerHTML = `
       <td class="mono">${escapeHtml(u.name)}</td>
-      <td>${escapeHtml(u.display_name)}</td>
+      <td>${escapeHtml(u.display_name)}${prepaidBadge}${managerBadge}</td>
       <td class="mono">${escapeHtml(u.role)}</td>
       <td class="mono">${fmt(u.usage_gb, 3)}</td>
       <td class="mono">${fmt(u.D, 4)}</td>
-      <td class="mono">${fmt(u.base_fee, 2)}</td>
-      <td class="mono">${fmt(u.variable_fee, 0)}</td>
-      <td class="mono">${fmt(u.personal_prepaid, 2)}</td>
-      <td class="mono">${fmt(u.final_fee, 2)}</td>
+      <td class="mono">${isPrepaid ? '<span style="color:var(--muted)">-</span>' : fmt(u.base_fee, 2)}</td>
+      <td class="mono">${isPrepaid ? '<span style="color:var(--muted)">-</span>' : fmt(u.variable_fee, 0)}</td>
+      <td class="mono" style="${isPrepaid?'color:#fbbf24;font-weight:900;':isManager?'color:#9ad2ff;font-weight:900;':''}">${fmt(u.final_fee, 2)}</td>
+      <td class="mono" style="color:var(--muted)">${rate}</td>
     `;
     tb.appendChild(tr);
   }
@@ -994,25 +1265,33 @@ function renderResult(result) {
     <div style="font-family:var(--mono); font-size:12px; line-height:1.5;">
       E_total(base 합계) = ${escapeHtml(s.E_total)}<br/>
       usage_sum_gb = ${escapeHtml(s.usage_sum_gb)}<br/>
-      remaining_pool = ${escapeHtml(s.remaining_pool)}<br/>
+      remaining_pool(일반자 variable 배분) = ${escapeHtml(s.remaining_pool)}<br/>
       sum_variable = ${escapeHtml(s.sum_variable)}<br/>
+      sum_personal_prepaid(선불 합계) = ${escapeHtml(s.sum_personal_prepaid)}<br/>
       sum_final = ${escapeHtml(s.sum_final)}<br/>
-      sum_personal_prepaid = ${escapeHtml(s.sum_personal_prepaid)}<br/>
-      check_total_collected = ${escapeHtml(s.check_total_collected)} ( = sum_final + F21 + personal )<br/>
+      check_total_collected = ${escapeHtml(s.check_total_collected)} ( = sum_final + F21 )<br/>
       target_total = ${escapeHtml(s.target_total)}
     </div>
   `;
 }
 
+function parseTimestampFromFilename(filename) {
+  // usage_total_20260228_235958.json  → 2026-02-28  23:59 UTC
+  // 20251229_153915_snapshot.json     → 2025-12-29  15:39 UTC
+  if (!filename) return "-";
+  // 패턴 1: yyyymmdd_HHMMSS (월간/스냅샷)
+  const m1 = filename.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/);
+  if (m1) return `${m1[1]}-${m1[2]}-${m1[3]}  ${m1[4]}:${m1[5]} UTC`;
+  // 패턴 2: yyyy-mm-dd (일간: usage_daily_2026-03-07.json)
+  const m2 = filename.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}  00:00 UTC`;
+  return "-";
+}
+
 function updateMeta(kind, filename, snap) {
   $("metaKind").textContent = kind || "-";
   $("metaFile").textContent = filename || "-";
-  $("metaType").textContent = snap?.snapshot_type ?? "-";
-  $("metaTs").textContent = snap?.timestamp_utc ?? snap?.timestamp_local ?? "-";
-
-  const usage = extractUsagePublic(snap || {});
-  $("metaPeriod").textContent = usage?.period_start_utc ?? snap?.period_start_utc ?? "-";
-  $("metaUpdated").textContent = usage?.last_updated_utc ?? snap?.last_updated_utc ?? "-";
+  $("metaTs").textContent = parseTimestampFromFilename(filename);
 }
 
 function setMsg(el, text, cls="msg") {
@@ -1037,8 +1316,8 @@ function renderFileList() {
     div.onclick = () => {
       selectedFile = f.name;
       $("btnLoad").disabled = false;
+      if (currentRole === "superadmin") $("btnCopyOffset").disabled = false;
       renderFileList();
-      setMsg("rightMsg", `선택됨: ${currentKind} / ${selectedFile}`, "msg");
       updateMeta(currentKind, selectedFile, snapshot);
     };
     list.appendChild(div);
@@ -1063,6 +1342,7 @@ async function loadFileList(kind) {
   $("btnLoad").disabled = true;
   $("btnCalc").disabled = true;
   $("btnCsv").disabled = true;
+  $("btnCopyOffset").disabled = true;
 
   updateMeta(currentKind, "-", null);
   setPill("목록 로딩중...", "");
@@ -1070,40 +1350,35 @@ async function loadFileList(kind) {
   setMsg("rightMsg", "좌측에서 파일을 선택하세요.", "msg");
   $("sumMsg").className = "msg";
   $("sumMsg").textContent = "정산 실행 후 summary가 여기에 표시됩니다.";
-
   $("tblPreview").querySelector("tbody").innerHTML = "";
   $("tblResult").querySelector("tbody").innerHTML = "";
 
   try {
     const data = await fetchJSON(`/api/archives/list?kind=${encodeURIComponent(kind)}`);
 
-    // ✅ 서버 응답 호환:
-    // 1) {files:[...]} 형태
-    // 2) 그냥 [...] 형태 (혹시나)
-    const raw = Array.isArray(data?.files)
-      ? data.files
-      : (Array.isArray(data) ? data : []);
-
-    // ✅ 문자열 배열 -> {name: "..."} 객체로 정규화
+    const raw = Array.isArray(data?.files) ? data.files : (Array.isArray(data) ? data : []);
     files = raw
       .map(x => {
         if (typeof x === "string") return { name: x };
-        if (x && typeof x === "object") {
-          const nm = x.name ?? x.filename ?? "";
-          return { name: String(nm), size: x.size ?? "" };
-        }
+        if (x && typeof x === "object") return { name: String(x.name ?? x.filename ?? ""), size: x.size ?? "" };
         return { name: String(x) };
       })
       .filter(f => f.name && f.name.trim().length > 0);
 
-    // 이름 기준 내림차순
     files.sort((a, b) => (a.name < b.name ? 1 : -1));
-
     renderFileList();
 
-    setPill(`목록 ${files.length}개`, "ok");
-    setMsg("leftMsg", `kind=${kind} 목록 ${files.length}개 로드 완료`, "msg ok");
+    if (files.length === 0) {
+      setPill("파일 없음", "");
+      setMsg("leftMsg", `kind=${kind} — 아카이브 파일이 없습니다.`, "msg");
+    } else {
+      setPill(`목록 ${files.length}개`, "ok");
+      setMsg("leftMsg", `kind=${kind} 목록 ${files.length}개 로드 완료`, "msg ok");
+    }
   } catch (e) {
+    if (String(e.message).includes("세션 만료")) return;
+    files = [];
+    renderFileList();
     setPill("목록 로드 실패", "bad");
     setMsg("leftMsg", `목록 로드 실패: ${e.message}`, "msg err");
   }
@@ -1132,32 +1407,29 @@ async function loadSnapshot() {
     setPill("스냅샷 로드 OK", "ok");
     setMsg("rightMsg", `스냅샷 로드 완료: ${currentKind} / ${selectedFile}`, "msg ok");
   } catch (e) {
+    if (String(e.message).includes("세션 만료")) return;
     setPill("스냅샷 로드 실패", "bad");
     setMsg("rightMsg", `스냅샷 로드 실패: ${e.message}`, "msg err");
   }
 }
 
 async function loadDefaultBillingParams() {
-  // manager.html 이 /api/billing 에서 params를 읽는 흐름을 그대로 사용
-  // (없으면 기본값)
   try {
     const data = await fetchJSON("/api/billing");
     const p = data?.params || {};
     const E1 = toNumber(p.base_amount_E1, 80);
     const F16 = toNumber(p.target_total_F16, 1750);
     const F21 = toNumber(p.common_prepaid_F21, 50);
-
     $("E1").value = E1;
     $("F16").value = F16;
     $("F21").value = F21;
-
     $("billMsg").className = "msg ok";
     $("billMsg").textContent = `/api/billing params 로 기본값 적용됨 (E1=${E1}, F16=${F16}, F21=${F21})`;
   } catch (e) {
+    if (String(e.message).includes("세션 만료")) return;
     $("E1").value = 80;
     $("F16").value = 1750;
     $("F21").value = 50;
-
     $("billMsg").className = "msg";
     $("billMsg").textContent = "/api/billing 읽기 실패 → 기본값(E1=80,F16=1750,F21=50) 사용";
   }
@@ -1170,7 +1442,7 @@ function downloadCSV(result) {
 
   const header = [
     "user","display_name","role","limit_gb","usage_gb","Rate",
-    "base_fee","variable_fee","personal_prepaid","final_fee",
+    "base_fee","variable_fee","personal_prepaid","final_fee","$/G",
     "base_fee_override"
   ];
 
@@ -1178,17 +1450,19 @@ function downloadCSV(result) {
   lines.push(header.join(","));
 
   for (const u of users) {
+    const rate = (u.usage_gb > 0) ? ((u.final_fee || 0) / u.usage_gb).toFixed(2) : "";
     const row = [
       u.name,
       `"${String(u.display_name ?? "").replace(/"/g,'""')}"`,
       u.role,
-            u.limit_gb,
+      u.limit_gb,
       u.usage_gb,
       u.D,
       u.base_fee,
       u.variable_fee,
       u.personal_prepaid,
       u.final_fee,
+      rate,
       (u.base_fee_override === null || u.base_fee_override === undefined) ? "" : u.base_fee_override
     ];
     lines.push(row.join(","));
@@ -1206,7 +1480,6 @@ function downloadCSV(result) {
 
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
@@ -1222,14 +1495,17 @@ function hookEvents() {
   $("btnRefresh").onclick = () => loadFileList(currentKind);
 
   $("btnLoad").onclick = () => loadSnapshot();
+  $("btnCopyOffset").onclick = () => copyOffsetFromSnapshot();
   $("btnCalc").onclick = () => {
     if (!snapshot) return;
 
     const E1 = toNumber($("E1").value, 0);
     const F16 = toNumber($("F16").value, 0);
     const F21 = toNumber($("F21").value, 0);
+    const prepaidMap  = getPersonalPrepaidMap();
+    const overrideMap = getOverrideMap();
 
-    const result = billingEngineLikeServer(snapshot, E1, F16, F21, engineParams);
+    const result = billingEngineLikeServer(snapshot, E1, F16, F21, engineParams, prepaidMap, overrideMap);
     lastBillingResult = result;
 
     renderResult(result);
@@ -1269,21 +1545,45 @@ function hookEvents() {
   });
 }
 
-// ===== 엔진 파라미터 로드 =====
+// ===== Offset 복사 (SUPERADMIN 전용) =====
+async function copyOffsetFromSnapshot() {
+  if (!selectedFile) {
+    setMsg("rightMsg", "파일을 먼저 선택하세요.", "msg err");
+    return;
+  }
+  if (!confirm(`[${selectedFile}] 의 total_bytes 값을\nusage_public.json 의 _offset_bytes 에 직접 적용합니다.\n\n계속하시겠습니까?`)) return;
+
+  $("btnCopyOffset").disabled = true;
+  setMsg("rightMsg", "처리 중...", "msg");
+
+  try {
+    const data = await fetchJSON("/api/copy_offset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: currentKind, filename: selectedFile }),
+    });
+    setMsg("rightMsg", `✅ ${data.message || "완료"} (적용: ${data.applied_count ?? "-"}명)`, "msg ok");
+  } catch(e) {
+    setMsg("rightMsg", "❌ 실패: " + e.message, "msg err");
+  } finally {
+    $("btnCopyOffset").disabled = false;
+  }
+}
+
+
 async function loadEngineParams() {
   try {
     const data = await fetchJSON("/api/settings/billing_engine_params");
-    if (data && typeof data === "object") {
-      engineParams = data;
-    }
+    if (data && typeof data === "object") engineParams = data;
   } catch(e) {
+    if (String(e.message).includes("세션 만료")) return;
     console.warn("billing_engine_params 로드 실패 (기본값 사용):", e.message);
   }
 }
 
 // ===== 엔진 파라미터 모달 =====
 const ENGINE_PARAMS_DEFAULT = {
-  manager:    { under_limit_deduction: 60, over_limit_fixed_fee: 110 },
+  manager:    { final_deduction: 30 },
   crew:       { over_limit_surcharge: 5, lowest_usage_deduction: 5, under_half_threshold: 0.5, under_half_deduction: 10 },
   apprentice: { rate: 0.5 }
 };
@@ -1292,8 +1592,7 @@ function fillEngineParamInputs(p) {
   const mg = p?.manager    || {};
   const cr = p?.crew       || {};
   const ap = p?.apprentice || {};
-  $("ep_mg_under_ded").value  = mg.under_limit_deduction  ?? 60;
-  $("ep_mg_over_fixed").value = mg.over_limit_fixed_fee   ?? 110;
+  $("ep_mg_final_ded").value  = mg.final_deduction        ?? 30;
   $("ep_cr_over_sur").value   = cr.over_limit_surcharge   ?? 5;
   $("ep_cr_low_ded").value    = cr.lowest_usage_deduction ?? 5;
   $("ep_cr_half_thr").value   = cr.under_half_threshold   ?? 0.5;
@@ -1331,8 +1630,7 @@ function resetEngineParamsToDefault() {
 async function saveEngineParams() {
   const payload = {
     manager: {
-      under_limit_deduction: parseFloat($("ep_mg_under_ded").value),
-      over_limit_fixed_fee:  parseFloat($("ep_mg_over_fixed").value)
+      final_deduction: parseFloat($("ep_mg_final_ded").value)
     },
     crew: {
       over_limit_surcharge:   parseFloat($("ep_cr_over_sur").value),
@@ -1347,10 +1645,8 @@ async function saveEngineParams() {
 
   // 클라이언트 검증
   const errs = [];
-  if (isNaN(payload.manager.under_limit_deduction) || payload.manager.under_limit_deduction < 0)
-    errs.push("manager.under_limit_deduction: 0 이상의 숫자");
-  if (isNaN(payload.manager.over_limit_fixed_fee)  || payload.manager.over_limit_fixed_fee < 0)
-    errs.push("manager.over_limit_fixed_fee: 0 이상의 숫자");
+  if (isNaN(payload.manager.final_deduction) || payload.manager.final_deduction < 0)
+    errs.push("manager.final_deduction: 0 이상의 숫자 (예: 30)");
   if (isNaN(payload.crew.over_limit_surcharge)     || payload.crew.over_limit_surcharge < 0)
     errs.push("crew.over_limit_surcharge: 0 이상의 숫자");
   if (isNaN(payload.crew.lowest_usage_deduction)   || payload.crew.lowest_usage_deduction < 0)
@@ -1390,23 +1686,42 @@ async function saveEngineParams() {
 }
 
 (async function init(){
-  hookEvents();
+  // ── file:// 프로토콜 경고 ──
+  if (location.protocol === "file:") {
+    setPill("직접열기 불가", "bad");
+    setMsg("leftMsg",
+      "⚠ 파일을 직접 열면 API를 호출할 수 없습니다.\n" +
+      "브라우저에서 접속하세요 → http://192.168.88.31:5000/archive_billing", "msg err");
+    return;
+  }
 
-  // 역할 확인 (superadmin 전용 UI 노출)
+  // ── 이벤트 바인딩 ──
+  try { hookEvents(); }
+  catch(e) {
+    setPill("초기화 오류", "bad");
+    setMsg("leftMsg", "hookEvents 오류: " + e.message, "msg err");
+    return;
+  }
+
+  // ── 역할 확인 ──
   try {
     const who = await fetchJSON("/api/whoami");
     currentRole = who.role || "admin";
   } catch(e) {
+    if (String(e.message).includes("세션 만료")) return;
     currentRole = "admin";
+    console.warn("[whoami]", e.message);
   }
-  if (currentRole === "superadmin") {
-    $("btnEngineParams").style.display = "";
-  }
+  if (currentRole === "superadmin") $("btnEngineParams").style.display = "";
+  if (currentRole === "superadmin") $("btnCopyOffset").style.display = "";
 
-  // 엔진 파라미터 로드
+  // ── 엔진 파라미터 로드 ──
   await loadEngineParams();
 
+  // ── 기본 정산 파라미터 ──
   await loadDefaultBillingParams();
+
+  // ── 파일 목록 ──
   await loadFileList("monthly");
 })();
 </script>
