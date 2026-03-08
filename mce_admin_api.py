@@ -9,7 +9,7 @@ mce_admin_api.py
   - /api/settings/billing_period 라우트 제거
   - /api/users/refresh 라우트 제거
   - usage_public.json 포맷: {last_updated_utc, users: [{user, comment, limit_gb, total_bytes, _last_raw_bytes, _offset_bytes}]}
-  - period_start_utc 는 billing_date.json의 last_reset_yyyymm에서 계산
+  - period_start_utc 는 billing_date.json의 last_reset_yyyymmdd에서 계산
   - limit_gb 는 RouterOS에서 읽으므로 /api/users/save에서 변경 차단
   - _infer_role(name, comment) 헬퍼로 comment 기반 역할 추론
 """
@@ -22,7 +22,7 @@ import time
 import paramiko
 
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from flask import (
     Flask,
@@ -32,6 +32,7 @@ from flask import (
     redirect,
     session,
     make_response,
+    send_from_directory,
 )
 
 
@@ -86,19 +87,43 @@ def _run_ssh_command(cmd: str):
 
 
 def _escape_password(pw: str):
-    pw = pw.replace("\\", "\\\\")
-    pw = pw.replace("\"", "\\\"")
-    pw = pw.replace("$", "\\$")
+    pw = pw.replace("\\", "\\\\")  # \ → \\
+    pw = pw.replace("\"", "\\\"")  # " → \"
+    pw = pw.replace("$", "\\$")    # $ → \$
+    pw = pw.replace("`", "\\`")    # ` → \`
+    pw = pw.replace(";", "\\;")    # ; → \;
+    pw = pw.replace("{", "\\{")    # { → \{
+    pw = pw.replace("}", "\\}")    # } → \}
     return pw
 
 
-_ALLOWED = set(string.printable) - set("\t\n\r\x0b\x0c")
-
 def _validate_new_password(pw: str):
+    """
+    비밀번호 유효성 검증
+    - 길이: 4-64자
+    - 허용: 영문, 숫자, !@#$%^&*()-_=+[],.?/
+    - 차단: 위험한 특수문자
+    """
     if not (4 <= len(pw) <= 64):
-        return False, "Password must be 4–64 characters."
-    if any(ch not in _ALLOWED for ch in pw):
-        return False, "Only ASCII printable characters are allowed."
+        return False, "Password must be 4-64 characters."
+    
+    # 허용된 문자만 사용했는지 검사 ($ 포함)
+    if not re.match(r'^[a-zA-Z0-9!@#$%^&*()\-_=+\[\],.?/]+$', pw):
+        return False, "Password can only contain: letters, numbers, and !@#$%^&*()-_=+[],.?/"
+    
+    # 위험한 문자들 명시적 차단 ($ 제외 - 이스케이프 처리로 안전하게 사용 가능)
+    dangerous_chars = {
+        '\\': 'backslash', '"': 'double quote',
+        '`': 'backtick', ';': 'semicolon', '{': 'left brace',
+        '}': 'right brace', '<': 'less than', '>': 'greater than',
+        '|': 'pipe', "'": 'single quote', ' ': 'space',
+    }
+    
+    found = [(ch, name) for ch, name in dangerous_chars.items() if ch in pw]
+    if found:
+        forbidden = ', '.join(f"'{ch}' ({name})" for ch, name in found)
+        return False, f"Password cannot contain: {forbidden}"
+    
     return True, ""
 
 
@@ -123,6 +148,10 @@ SUPER_ADMIN_PASSWORD = "Star$625Link"
 
 app = Flask(__name__, template_folder=str(TEMPLATE_DIR))
 app.secret_key = "MCE_Super_ADMIN"
+
+# ★ 템플릿 파일 교체 후 재시작 없이도 즉시 반영
+app.jinja_env.auto_reload = True
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 
 # ===== 유틸 =====
@@ -195,21 +224,34 @@ def _get_billing_start_day() -> int:
 
 def _calc_period_start_from_billing_date() -> str:
     """
-    billing_date.json의 last_reset_yyyymm + billing_start_day 에서 period_start_utc 계산.
-    예: last_reset_yyyymm="202603", billing_start_day=1 → "2026-03-01T00:00:00Z"
+    billing_date.json의 last_reset_yyyymmdd 에서 period_start_utc 계산.
+    예: last_reset_yyyymmdd="20260301" → "2026-03-01T00:00:00Z"
+
+    (레거시 호환)
+    - last_reset_yyyymmdd 가 없으면 last_reset_yyyymm + billing_start_day 로 계산
     """
     try:
         import calendar as _cal
         bd = _load_billing_date_raw()
-        last_reset = bd.get("last_reset_yyyymm", "")
+
+        last_reset_dd = (bd.get("last_reset_yyyymmdd") or "").strip()
+        if len(last_reset_dd) == 8 and last_reset_dd.isdigit():
+            y = int(last_reset_dd[:4])
+            m = int(last_reset_dd[4:6])
+            d = int(last_reset_dd[6:8])
+            last_day = _cal.monthrange(y, m)[1]
+            d = min(max(1, d), last_day)
+            return f"{y:04d}-{m:02d}-{d:02d}T00:00:00Z"
+
+        last_reset = (bd.get("last_reset_yyyymm") or "").strip()
         start_day = int(bd.get("billing_start_day", 1))
         if not last_reset or len(last_reset) != 6:
             return "-"
-        year = int(last_reset[:4])
-        month = int(last_reset[4:6])
-        last_day = _cal.monthrange(year, month)[1]
-        clamped = min(start_day, last_day)
-        return f"{year:04d}-{month:02d}-{clamped:02d}T00:00:00Z"
+        y = int(last_reset[:4])
+        m = int(last_reset[4:6])
+        last_day = _cal.monthrange(y, m)[1]
+        d = min(max(1, start_day), last_day)
+        return f"{y:04d}-{m:02d}-{d:02d}T00:00:00Z"
     except Exception:
         return "-"
 
@@ -282,7 +324,7 @@ def _reset_usage_public_file_all_users() -> dict:
             # comment, limit_gb 는 유지
 
     raw.pop("users_by_name", None)
-    now_iso = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     raw["last_updated_utc"] = now_iso
     raw["users"] = users
 
@@ -393,53 +435,81 @@ def hotspot_pw_options():
 
 @app.route("/api/hotspot/change_password", methods=["POST"])
 def hotspot_change_password():
+    """사용자 비밀번호 변경 API"""
+    # 1. 입력값 가져오기
     user = (request.form.get("user") or "").strip()
     cur  = (request.form.get("current_password") or "").strip()
     newp = (request.form.get("new_password") or "").strip()
+    
+    # 2. 필수 필드 검증
     if not user or not newp:
-        return _add_cors(jsonify({"ok": False, "reason": "Missing fields."})), 200
-
+        return _add_cors(jsonify({"ok": False, "reason": "Missing required fields."})), 200
+    
+    # 3. Username 검증 (명령어 인젝션 방지)
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', user):
+        app.logger.warning(f"Invalid username format attempted: {user}")
+        return _add_cors(jsonify({"ok": False, "reason": "Invalid username format."})), 200
+    
+    # 4. 새 비밀번호 유효성 검증
     ok, reason = _validate_new_password(newp)
     if not ok:
+        app.logger.info(f"Password validation failed for user '{user}': {reason}")
         return _add_cors(jsonify({"ok": False, "reason": reason})), 200
-
+    
+    # 5. RouterOS에서 현재 비밀번호 조회
     ver_cmd = f'/ip hotspot user print detail where name="{user}"'
     out_ver, err_ver = _run_ssh_command(ver_cmd)
-    m = re.search(r'password="([^"]+)"', out_ver)
-    router_pw = m.group(1) if m else None
-    esc_cur = _escape_password(cur)
+    
     if err_ver:
+        app.logger.error(f"RouterOS error while fetching user '{user}': {err_ver}")
         return _add_cors(jsonify({"ok": False, "reason": f"RouterOS error: {err_ver}"})), 200
-
+    
+    # 6. 비밀번호 필드 추출
+    m = re.search(r'password="([^"]*)"', out_ver)
+    if not m:
+        app.logger.warning(f"User '{user}' not found or password field missing")
+        return _add_cors(jsonify({"ok": False, "reason": "User not found."})), 200
+    
+    router_pw = m.group(1)
+    
+    # 7. 현재 비밀번호 검증 (원본 또는 이스케이프 버전 허용)
+    esc_cur = _escape_password(cur)
+    
     if (router_pw != cur) and (router_pw != esc_cur):
-        return _add_cors(jsonify({
-            "ok": False,
-            "reason": "Current password does not match.",
-            "router_current_password": router_pw,
-            "provided_current_password": cur,
-        })), 200
-
+        app.logger.warning(f"Current password mismatch for user '{user}'")
+        return _add_cors(jsonify({"ok": False, "reason": "Current password is incorrect."})), 200
+    
+    # 8. 새 비밀번호 설정
     esc_new = _escape_password(newp)
-    set_cmd = f'/ip hotspot user set {user} password="{esc_new}"'
+    set_cmd = f'/ip hotspot user set "{user}" password="{esc_new}"'
+    
     out_set, err_set = _run_ssh_command(set_cmd)
     if err_set:
-        return _add_cors(jsonify({"ok": False, "reason": f"SET error: {err_set}"})), 200
-
-    time.sleep(0.5)
-    out_ver, err_ver = _run_ssh_command(ver_cmd)
-    if err_ver:
-        return _add_cors(jsonify({"ok": False, "reason": f"RouterOS verify error: {err_ver}"})), 200
-
-    m = re.search(r'password="([^"]+)"', out_ver)
-    router_pw = m.group(1) if m else "(not found)"
-    if (router_pw != newp) and (router_pw != esc_new):
-        return _add_cors(jsonify({
-            "ok": False,
-            "reason": "New password does not match as Router.",
-            "router_current_password": router_pw,
-            "provided_current_password": cur,
-        })), 200
-
+        app.logger.error(f"Failed to set password for user '{user}': {err_set}")
+        return _add_cors(jsonify({"ok": False, "reason": f"Password change failed: {err_set}"})), 200
+    
+    # 9. 설정 확인 (RouterOS 반영 대기)
+    time.sleep(1.0)  # RouterOS가 변경사항을 확실히 반영하도록 대기
+    
+    out_ver2, err_ver2 = _run_ssh_command(ver_cmd)
+    if err_ver2:
+        app.logger.error(f"Verification error for user '{user}': {err_ver2}")
+        return _add_cors(jsonify({"ok": False, "reason": f"Verification failed: {err_ver2}"})), 200
+    
+    # 10. 새 비밀번호 확인
+    m2 = re.search(r'password="([^"]*)"', out_ver2)
+    if not m2:
+        app.logger.error(f"Verification: password field not found for user '{user}'")
+        return _add_cors(jsonify({"ok": False, "reason": "Verification failed."})), 200
+    
+    router_pw_new = m2.group(1)
+    
+    if (router_pw_new != newp) and (router_pw_new != esc_new):
+        app.logger.error(f"Password verification failed for user '{user}'")
+        return _add_cors(jsonify({"ok": False, "reason": "Password verification failed."})), 200
+    
+    # 11. 성공
+    app.logger.info(f"✅ Password changed for user: {user}")
     return _add_cors(jsonify({"ok": True})), 200
 
 
@@ -454,19 +524,30 @@ def index():
 def login():
     error_msg = None
     if request.method == "POST":
-        pw = request.form.get("password", "")
+        admin_id = request.form.get("admin_id", "").strip()
+        pw = request.form.get("password", "").strip()
+        
+        # ID와 비밀번호 모두 확인
         admin_pw = load_admin_password()
         role = None
-        if pw == SUPER_ADMIN_PASSWORD:
+        
+        if admin_id == "superadmin" and pw == SUPER_ADMIN_PASSWORD:
             role = "superadmin"
-        elif admin_pw and pw == admin_pw:
+        elif admin_id == "admin" and admin_pw and pw == admin_pw:
             role = "admin"
+        
         if role:
             session["logged_in"] = True
             session["role"] = role
             return redirect("/manager")
         else:
-            error_msg = "비밀번호가 올바르지 않습니다."
+            if not admin_id:
+                error_msg = "관리자 ID를 선택해주세요."
+            elif not pw:
+                error_msg = "비밀번호를 입력해주세요."
+            else:
+                error_msg = "ID 또는 비밀번호가 올바르지 않습니다."
+    
     return render_template("login.html", error=error_msg)
 
 @app.route("/manager/login", methods=["POST"])
@@ -484,6 +565,12 @@ def archive_billing_page():
         return redirect("/login")
     return render_template("archive_billing.html", role=current_role())
 
+@app.route("/all_user_graph")
+def all_user_graph_page():
+    if not require_login():
+        return redirect("/login")
+    return render_template("all_user_graph.html", role=current_role())
+
 @app.route("/api/whoami", methods=["GET"])
 def api_whoami():
     if not require_login():
@@ -498,7 +585,7 @@ def manager():
 
     usage_json = load_usage_public()
 
-    # period_start_utc: billing_date.json의 last_reset_yyyymm에서 계산
+    # period_start_utc: billing_date.json의 last_reset_yyyymmdd에서 계산
     raw_period = _calc_period_start_from_billing_date()
     period_start = _iso_to_display_str(raw_period) if raw_period not in ("-", "") else "N/A"
 
@@ -582,6 +669,7 @@ def api_monthly_usage():
     used_bytes = 0
     offset_bytes = 0
     limit_gb = None
+    comment = ""
 
     if isinstance(info, dict):
         try:
@@ -596,6 +684,8 @@ def api_monthly_usage():
             limit_gb = float(info.get("limit_gb", 100.0))
         except Exception:
             limit_gb = None
+        # comment 추가
+        comment = info.get("comment", "")
 
     period_start_utc = _calc_period_start_from_billing_date()
 
@@ -604,11 +694,88 @@ def api_monthly_usage():
         "total_bytes": used_bytes,
         "_offset_bytes": offset_bytes,
         "limit_gb": limit_gb,
+        "comment": comment,  # comment 필드 추가
         "period_start_utc": period_start_utc,
         "last_updated_utc": usage_public.get("last_updated_utc"),
     })
     resp.headers["Access-Control-Allow-Origin"] = "*"
     return resp
+
+
+# ===== /api/usage_public =====
+@app.route("/api/usage_public")
+def api_usage_public_endpoint():
+    """
+    Return current usage_public.json for real-time usage monitoring
+    Supports optional user parameter for filtering
+    """
+    try:
+        usage_public = load_usage_public()
+        
+        # 특정 사용자만 요청하는 경우
+        username = (request.args.get("user") or "").strip()
+        if username:
+            users_by_name = usage_public.get("users_by_name", {}) or {}
+            user_info = users_by_name.get(username)
+            
+            if user_info:
+                resp = jsonify({
+                    "user": username,
+                    "total_bytes": user_info.get("total_bytes", 0),
+                    "_offset_bytes": user_info.get("_offset_bytes", 0),
+                    "limit_gb": user_info.get("limit_gb", 0),
+                    "last_updated_utc": usage_public.get("last_updated_utc")
+                })
+            else:
+                resp = jsonify({"error": "User not found"})
+                return _add_cors(resp), 404
+        else:
+            # 전체 데이터 반환
+            resp = jsonify(usage_public)
+        
+        return _add_cors(resp)
+    except Exception as e:
+        app.logger.error(f"Error loading usage_public.json: {str(e)}")
+        resp = jsonify({"error": str(e)})
+        return _add_cors(resp), 500
+
+
+# ===== /api/billing_date =====
+@app.route("/api/billing_date")
+def api_billing_date():
+    """
+    Return billing_date.json for client-side period calculation
+    """
+    try:
+        billing_data = _load_billing_date_raw()
+        resp = jsonify(billing_data)
+        return _add_cors(resp)
+    except FileNotFoundError:
+        resp = jsonify({"error": "billing_date.json not found"})
+        return _add_cors(resp), 404
+    except Exception as e:
+        app.logger.error(f"Error loading billing_date.json: {str(e)}")
+        resp = jsonify({"error": str(e)})
+        return _add_cors(resp), 500
+
+
+# ===== /daily_archives/<filename> =====
+@app.route("/daily_archives/<path:filename>")
+def serve_daily_archives(filename):
+    """
+    Serve daily archive JSON files for direct client-side access
+    Example: /daily_archives/usage_daily_2026-02-01.json
+    """
+    try:
+        resp = send_from_directory(str(DAILY_ARCHIVES_DIR), filename)
+        return _add_cors(resp)
+    except FileNotFoundError:
+        resp = jsonify({"error": "File not found"})
+        return _add_cors(resp), 404
+    except Exception as e:
+        app.logger.error(f"Error serving daily archive {filename}: {str(e)}")
+        resp = jsonify({"error": "Internal server error"})
+        return _add_cors(resp), 500
 
 
 # ===== /api/daily_usage =====
@@ -745,7 +912,7 @@ def api_users_save():
                 entry["_offset_bytes"] = new_bytes - raw_total
 
         raw_usage["users"] = users_list
-        raw_usage["last_updated_utc"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        raw_usage["last_updated_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         _safe_write_json(USAGE_PUBLIC_PATH, raw_usage)
 
     return jsonify({"status": "ok"})
@@ -784,8 +951,40 @@ def api_billing_start_day():
     try:
         bd = _load_billing_date_raw()
         bd["billing_start_day"] = day_val
+
+        # [PATCH] billing_start_day 변경 시 last_reset/last_snapshot도 새 기준으로 align
+        import calendar as _cal
+        now_dt = datetime.now(timezone.utc)
+
+        def _clamp_day(y: int, m: int, day: int) -> int:
+            last_day = _cal.monthrange(y, m)[1]
+            return min(max(1, day), last_day)
+
+        def _current_period_start(now_: datetime, start_day_: int) -> datetime:
+            y = now_.year
+            m = now_.month
+            d_this = _clamp_day(y, m, start_day_)
+            this_dt = datetime(y, m, d_this, 0, 0, 0, tzinfo=timezone.utc)
+            if now_ >= this_dt:
+                return this_dt
+            if m == 1:
+                py, pm = y - 1, 12
+            else:
+                py, pm = y, m - 1
+            d_prev = _clamp_day(py, pm, start_day_)
+            return datetime(py, pm, d_prev, 0, 0, 0, tzinfo=timezone.utc)
+
+        cur_start_dt = _current_period_start(now_dt, day_val)
+        bd["last_reset_yyyymmdd"] = cur_start_dt.strftime("%Y%m%d")
+        bd["last_snapshot_yyyymmdd"] = (cur_start_dt - timedelta(seconds=1)).strftime("%Y%m%d")
+
         _safe_write_json(BILLING_DATE_PATH, bd)
-        return jsonify({"status": "ok", "billing_start_day": day_val})
+        return jsonify({
+            "status": "ok",
+            "billing_start_day": day_val,
+            "last_reset_yyyymmdd": bd["last_reset_yyyymmdd"],
+            "last_snapshot_yyyymmdd": bd["last_snapshot_yyyymmdd"],
+        })
     except Exception as e:
         return jsonify({"error": f"billing_date.json write failed: {e}"}), 500
 
@@ -995,6 +1194,20 @@ def api_usage_reset_all():
         return jsonify({"error": str(e)}), 500
 
 
+# ===== /api/usage/reset_pi_only =====
+@app.route("/api/usage/reset_pi_only", methods=["POST"])
+def api_usage_reset_pi_only():
+    if not require_login():
+        return jsonify({"error": "unauthorized"}), 401
+    try:
+        meta = _reset_usage_public_file_all_users()
+        app.logger.info(f"Admin reset PI-only usage at {meta['last_updated_utc']}")
+        return jsonify({"message": "RESET OK (Pi usage_public.json only)", **meta}), 200
+    except Exception as e:
+        app.logger.error(f"[reset_pi_only] exception: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 # ===== RouterOS reset_counters_all =====
 @app.route("/api/routeros/reset_counters_all", methods=["POST"])
 def api_routeros_reset_counters_all():
@@ -1011,6 +1224,25 @@ def api_routeros_reset_counters_all():
     except Exception as e:
         app.logger.error(f"[RouterOS reset_counters_all] exception: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+
+
+# ===== RouterOS reset_counters_router_only =====
+@app.route("/api/routeros/reset_counters_router_only", methods=["POST"])
+def api_routeros_reset_counters_router_only():
+    if not require_login():
+        return jsonify({"error": "unauthorized"}), 401
+    try:
+        cmd = ':local actList [/ip hotspot active find]; :if ([:len $actList] > 0) do={ /ip hotspot active remove $actList; }; :delay 1; /ip hotspot user reset-counters [find]; :foreach b in=[/ip hotspot ip-binding find where (comment~"_IoT_")] do={ :local mac [/ip hotspot ip-binding get $b mac-address]; :if ([:len $mac] > 0) do={ :local h [/ip hotspot host find where mac-address=$mac]; :if ([:len $h] > 0) do={ /ip hotspot host remove $h; }; }; }; :put "RESET_DONE"'
+        out, err = _run_ssh_command(cmd)
+        if err:
+            app.logger.error(f"[RouterOS reset_counters_router_only] stderr: {err}")
+            return jsonify({"error": err}), 500
+        return jsonify({"message": "RESET OK (RouterOS only)", "stdout": out}), 200
+    except Exception as e:
+        app.logger.error(f"[RouterOS reset_counters_router_only] exception: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 
 
 # ===== Archives =====
@@ -1090,13 +1322,10 @@ def api_snapshot_save():
                 "_offset_bytes": offset_bytes,
             })
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         period_start_utc = _calc_period_start_from_billing_date()
         snapshot_data = {
             "snapshot_type": "manual",
-            "timestamp_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "period_start_utc": period_start_utc,
-            "last_updated_utc": usage_public.get("last_updated_utc"),
             "users": users_min,
         }
 
@@ -1113,5 +1342,101 @@ def api_snapshot_save():
         return jsonify({"error": str(e)}), 500
 
 
+
+# ===== /api/copy_offset (SUPERADMIN 전용) =====
+@app.route("/api/copy_offset", methods=["POST"])
+def api_copy_offset():
+    if not require_login():
+        return jsonify({"error": "unauthorized"}), 401
+    if current_role() != "superadmin":
+        return jsonify({"error": "superadmin only"}), 403
+
+    data = request.get_json(silent=True) or {}
+    kind     = (data.get("kind")     or "").strip()
+    filename = (data.get("filename") or "").strip()
+
+    ok, msg = _validate_kind_and_filename(kind, filename)
+    if not ok:
+        return jsonify({"error": msg}), 400
+
+    # 선택된 아카이브 파일 읽기
+    archive_path = _archive_dir(kind) / filename
+    if not archive_path.exists():
+        return jsonify({"error": "archive file not found"}), 404
+
+    try:
+        archive = json.loads(archive_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        return jsonify({"error": f"archive read failed: {e}"}), 500
+
+    # 아카이브의 user별 total_bytes 맵 생성
+    archive_map = {}
+    for u in archive.get("users", []):
+        name = u.get("user")
+        if name:
+            archive_map[name] = int(u.get("total_bytes", 0) or 0)
+
+    # usage_public.json 읽기
+    if not USAGE_PUBLIC_PATH.exists():
+        return jsonify({"error": "usage_public.json not found"}), 404
+
+    try:
+        usage = json.loads(USAGE_PUBLIC_PATH.read_text(encoding="utf-8"))
+    except Exception as e:
+        return jsonify({"error": f"usage_public read failed: {e}"}), 500
+
+    # 아카이브의 total_bytes → usage_public.json 의 _offset_bytes 에 직접 적용
+    applied = 0
+    skipped = 0
+    for u in usage.get("users", []):
+        name = u.get("user")
+        if not name:
+            continue
+        if name in archive_map:
+            u["_offset_bytes"] = archive_map[name]
+            applied += 1
+        else:
+            skipped += 1
+
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    usage["last_updated_utc"] = now_iso
+
+    try:
+        _safe_write_json(USAGE_PUBLIC_PATH, usage)
+    except Exception as e:
+        return jsonify({"error": f"usage_public.json 저장 실패: {e}"}), 500
+
+    app.logger.info(
+        f"[copy_offset] archive={filename}, applied={applied}, skipped={skipped}, by=superadmin"
+    )
+    return jsonify({
+        "message": "usage_public.json _offset_bytes 적용 완료",
+        "archive": filename,
+        "applied_count": applied,
+        "skipped_count": skipped,
+        "last_updated_utc": now_iso,
+    }), 200
+
+
+
+ASSET_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico"}
+
+@app.route("/assets/<path:filename>")
+def serve_assets(filename):
+    # 보안상 이미지 확장자만 허용
+    try:
+        ext = Path(filename).suffix.lower()
+    except Exception:
+        return "Bad request", 400
+
+    if ext not in ASSET_EXTS:
+        return "Forbidden", 403
+
+    try:
+        return send_from_directory(str(TEMPLATE_DIR), filename)
+    except FileNotFoundError:
+        return "Not found", 404
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    # ★ threaded=True: SSH 등 느린 요청이 다른 API 호출을 막지 않도록 멀티스레드 활성화
+    app.run(host="0.0.0.0", port=5000, threaded=True)
