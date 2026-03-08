@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <title>MCE Usage Graph</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111a2d;
+      --text: #e9eefc;
+      --muted: #9fb0d0;
+      --line: rgba(255,255,255,0.10);
+      --brand: #7aa2ff;
+      --ok: #36d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --shadow: 0 12px 36px rgba(0,0,0,0.35);
+      --radius: 16px;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(122,162,255,0.18), transparent 60%),
+                  radial-gradient(1000px 600px at 80% 0%, rgba(154,210,255,0.10), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+    }
+
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 14px 14px 28px; }
+
+    /* ── topbar ── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(17,26,45,0.70);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      position: sticky; top: 10px; z-index: 20;
+      gap: 10px; flex-wrap: wrap;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .title { font-size: 16px; font-weight: 900; letter-spacing: .2px; }
+    .pill {
+      font-size: 11px; padding: 4px 10px; border-radius: 999px;
+      background: rgba(122,162,255,0.16); border: 1px solid rgba(122,162,255,0.35);
+      color: #9ad2ff;
+    }
+    .pill.ok  { background: rgba(54,211,153,0.15); border-color: rgba(54,211,153,0.35); color: #bff7e2; }
+    .pill.bad { background: rgba(251,113,133,0.14); border-color: rgba(251,113,133,0.35); color: #ffd0d8; }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 12px;
+      transition: background .15s, border-color .15s;
+    }
+    .btn:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.20); }
+    .btn:active { transform: translateY(1px); }
+
+    /* ── panel ── */
+    .panel {
+      background: rgba(17,26,45,0.72);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      margin-top: 14px;
+      padding: 18px 18px 22px;
+    }
+    .panel-title {
+      font-size: 14px; font-weight: 900; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+    /* ── chart wrapper ── */
+    .chart-outer {
+      position: relative;
+      width: 100%;
+    }
+    /* 기본(데스크톱): 세로 고정 */
+    .chart-outer canvas {
+      width: 100% !important;
+    }
+
+    /* ── 100% 기준선 강조 ── */
+    /* (Chart.js annotation 없이 CSS로 표시 – 실제 선은 JS에서 처리) */
+
+    /* ── status message ── */
+    .msg {
+      margin-top: 12px; padding: 10px 14px;
+      border-radius: 12px; border: 1px solid var(--line);
+      background: rgba(0,0,0,0.14); color: var(--muted);
+      font-size: 13px;
+    }
+    .msg.ok  { border-color: rgba(54,211,153,0.35); background: rgba(54,211,153,0.10); color: #bff7e2; }
+    .msg.err { border-color: rgba(251,113,133,0.35); background: rgba(251,113,133,0.10); color: #ffd0d8; }
+
+    /* ── 범례 커스텀 ── */
+    .legend-wrap {
+      display: flex; flex-wrap: wrap; gap: 6px 14px;
+      margin-top: 14px;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text);
+    }
+    .legend-dot {
+      width: 22px; height: 3px; border-radius: 2px; flex-shrink: 0;
+    }
+
+    /* ── 반응형 ── */
+    @media (max-width: 600px) {
+      .wrap { padding: 10px 10px 24px; }
+      .topbar { padding: 10px 12px; }
+      .title { font-size: 14px; }
+      .panel { padding: 14px 12px 18px; }
+      .panel-title { font-size: 13px; }
+    }
+
+    /* 가로모드 (landscape) 스마트폰 */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .topbar { position: relative; top: 0; }
+      .chart-outer { height: 55vw; max-height: 340px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="title">📈 MCE Usage Graph</div>
+      <div class="pill" id="pillStatus">로딩 중...</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <span id="periodLabel" style="font-size:11px;color:var(--muted);font-family:var(--mono);"></span>
+      <button class="btn" onclick="loadAll()">🔄 새로고침</button>
+      <button class="btn" onclick="window.location.href='/manager'">← 관리자</button>
+    </div>
+  </div>
+
+  <!-- chart panel -->
+  <div class="panel">
+    <div class="panel-title">사용자별 날짜별 진행율 (%)</div>
+    <div class="sub" id="subInfo">기간 시작일부터 현재까지의 누적 사용량 / 한도 × 100</div>
+    <div class="chart-outer">
+      <canvas id="mainChart"></canvas>
+    </div>
+    <div id="legendWrap" class="legend-wrap"></div>
+    <div style="margin-top:10px;">
+      <button class="btn" id="btnShowAll" onclick="showAll()" style="display:none; font-size:11px; padding:6px 14px;">👁 전체 보기</button>
+    </div>
+    <div class="msg" id="msgBox">데이터를 불러오는 중...</div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+// ── 색상 팔레트 ──
+const PALETTE = [
+  "#7aa2ff","#fbbf24","#36d399","#fb7185","#9ad2ff",
+  "#a78bfa","#f97316","#34d399","#e879f9","#facc15",
+  "#38bdf8","#4ade80","#f472b6","#818cf8","#fb923c","#a3e635"
+];
+
+let chartInst = null;
+
+function setPill(text, type="") {
+  const el = document.getElementById("pillStatus");
+  el.textContent = text;
+  el.className = "pill" + (type ? " " + type : "");
+}
+function setMsg(text, type="") {
+  const el = document.getElementById("msgBox");
+  el.textContent = text;
+  el.className = "msg" + (type ? " " + type : "");
+}
+
+async function fetchJSON(url) {
+  const resp = await fetch(url, { credentials: "include" });
+  if (resp.status === 401) throw new Error("세션 만료 — 다시 로그인하세요.");
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${url}`);
+  return resp.json();
+}
+
+// 날짜 배열 생성 (YYYY-MM-DD)
+function dateRange(startStr, endStr) {
+  const dates = [];
+  let cur = new Date(startStr + "T00:00:00Z");
+  const end = new Date(endStr + "T00:00:00Z");
+  while (cur <= end) {
+    dates.push(cur.toISOString().slice(0, 10));
+    cur = new Date(cur.getTime() + 86400000);
+  }
+  return dates;
+}
+
+// billing_date.json → period start YYYY-MM-DD
+function calcPeriodStart(bd) {
+  const dd = (bd.last_reset_yyyymmdd || "").trim();
+  if (dd.length === 8) {
+    return `${dd.slice(0,4)}-${dd.slice(4,6)}-${dd.slice(6,8)}`;
+  }
+  const ym = (bd.last_reset_yyyymm || "").trim();
+  const day = bd.billing_start_day || 1;
+  if (ym.length === 6) {
+    return `${ym.slice(0,4)}-${ym.slice(4,6)}-${String(day).padStart(2,"0")}`;
+  }
+  // fallback: 이번 달 1일
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,"0")}-01`;
+}
+
+let highlightedIndex = null;  // 현재 강조된 dataset index (-1: 전체)
+
+function showAll() {
+  highlightedIndex = null;
+  if (!chartInst) return;
+  const totalLabels = chartInst.data.labels.length;
+  const todayIdx    = totalLabels - 1;   // 오늘은 항상 마지막 라벨
+  chartInst.data.datasets.forEach((ds, i) => {
+    if (ds.label === "100% 한도") return;
+    ds.borderColor          = ds._origColor;
+    ds.pointBackgroundColor = ds._ptBgColors || ds._origColor;
+    ds.borderWidth          = 2;
+    ds.pointRadius          = ds._ptRadii || (totalLabels <= 14 ? 4 : 2);
+  });
+  chartInst.update();
+  document.querySelectorAll(".legend-item").forEach(el => {
+    el.style.opacity = "1";
+    el.style.fontWeight = "700";
+  });
+  document.getElementById("btnShowAll").style.display = "none";
+}
+
+function highlightDataset(targetIdx) {
+  if (!chartInst) return;
+
+  // 같은 걸 다시 클릭하면 전체 보기로
+  if (highlightedIndex === targetIdx) {
+    showAll();
+    return;
+  }
+  highlightedIndex = targetIdx;
+
+  chartInst.data.datasets.forEach((ds, i) => {
+    if (ds.label === "100% 한도") return;
+    const n = chartInst.data.labels.length;
+    if (i === targetIdx) {
+      // 강조 — 원본 배열 복원
+      ds.borderColor          = ds._origColor;
+      ds.pointBackgroundColor = ds._ptBgColors || Array(n).fill(ds._origColor);
+      ds.borderWidth          = 3;
+      ds.pointRadius          = ds._ptRadii    || Array(n).fill(n <= 14 ? 5 : 3);
+    } else {
+      // 희미하게 — 배열 전체를 dim 색으로, pointRadius 배열 전체를 0으로
+      ds.borderColor          = ds._origColor + "33";
+      ds.pointBackgroundColor = Array(n).fill(ds._origColor + "33");
+      ds.borderWidth          = 1;
+      ds.pointRadius          = Array(n).fill(0);
+    }
+  });
+  chartInst.update();
+
+  // 범례 강조/희미
+  document.querySelectorAll(".legend-item").forEach((el, i) => {
+    if (i === targetIdx) {
+      el.style.opacity = "1";
+      el.style.fontWeight = "900";
+    } else {
+      el.style.opacity = "0.3";
+      el.style.fontWeight = "400";
+    }
+  });
+  document.getElementById("btnShowAll").style.display = "";
+}
+
+function buildLegend(datasets) {
+  const wrap = document.getElementById("legendWrap");
+  wrap.innerHTML = "";
+  datasets.forEach((ds, i) => {
+    const item = document.createElement("div");
+    item.className = "legend-item";
+    item.style.cursor = "pointer";
+    item.style.transition = "opacity .2s";
+    item.style.userSelect = "none";
+    item.innerHTML = `<div class="legend-dot" style="background:${ds.borderColor}"></div><span>${ds.label}</span>`;
+    item.onclick = () => highlightDataset(i);
+    wrap.appendChild(item);
+  });
+}
+
+async function loadAll() {
+  setPill("로딩 중...", "");
+  setMsg("데이터를 불러오는 중...", "");
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  document.getElementById("legendWrap").innerHTML = "";
+
+  try {
+    // 1. 사용자 목록 + 한도
+    const usersData = await fetchJSON("/api/users");
+    const allUsers = (usersData.users || []).filter(u =>
+      u.role !== "public" && !u.user.toLowerCase().includes("default")
+    );
+    if (!allUsers.length) throw new Error("사용자 없음");
+
+    // 2. 기간 시작일
+    const bd = await fetchJSON("/api/billing_date");
+    const periodStart = calcPeriodStart(bd);
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    document.getElementById("periodLabel").textContent = `${periodStart} ~ ${todayStr}`;
+    document.getElementById("subInfo").textContent =
+      `기간: ${periodStart} ~ ${todayStr}  |  진행율 = 누적사용량 / 한도 × 100`;
+
+    const labels = dateRange(periodStart, todayStr);
+
+    // 3. 각 user daily data 병렬 fetch
+    const results = await Promise.all(
+      allUsers.map(u =>
+        fetchJSON(`/api/daily_usage?user=${encodeURIComponent(u.user)}&start=${periodStart}&end=${todayStr}`)
+          .then(d => ({ user: u, data: d }))
+          .catch(() => ({ user: u, data: null }))
+      )
+    );
+
+    // 오늘 실시간 사용량 맵 (usage_public.json 기반) — /api/users 에서 이미 받아온 데이터 활용
+    const todayLiveMap = {};
+    allUsers.forEach(u => {
+      // usage_bytes = total_bytes,  _offset_bytes 는 API 응답에 포함됨
+      const effective = (u.usage_bytes || 0) + (u._offset_bytes || 0);
+      todayLiveMap[u.user] = effective;
+    });
+
+    // 4. 데이터셋 구성
+    const datasets = [];
+    results.forEach(({ user, data }, idx) => {
+      const color = PALETTE[idx % PALETTE.length];
+      const limitBytes = (user.limit_gb || 100) * 1e9;
+
+      // 날짜→진행율 맵 + 날짜→effective_bytes 맵
+      const pctMap = {};
+      const bytesMap = {};
+      if (data && data.ok && data.series) {
+        data.series.forEach(pt => {
+          if (!pt.missing && pt.effective_bytes !== null && pt.effective_bytes !== undefined) {
+            pctMap[pt.date]   = parseFloat(((pt.effective_bytes / limitBytes) * 100).toFixed(2));
+            bytesMap[pt.date] = pt.effective_bytes;
+          }
+        });
+      }
+
+      // 오늘(todayStr) 포인트는 usage_public.json 실시간 값으로 덮어씌움
+      const todayBytes = todayLiveMap[user.user];
+      if (todayBytes !== undefined && todayBytes !== null) {
+        bytesMap[todayStr] = todayBytes;
+        pctMap[todayStr]   = parseFloat(((todayBytes / limitBytes) * 100).toFixed(2));
+      }
+
+      // labels 순서로 배열 구성 (없는 날은 null)
+      const pts         = labels.map(d => pctMap[d]   !== undefined ? pctMap[d]   : null);
+      const rawBytes    = labels.map(d => bytesMap[d] !== undefined ? bytesMap[d] : null);
+      const todayIdx    = labels.indexOf(todayStr);
+
+      // 오늘 포인트만 크고 다른 색으로 강조
+      const ptRadii = labels.map((d, i) =>
+        i === todayIdx ? 7 : (labels.length <= 14 ? 4 : 2)
+      );
+      const ptBgColors = labels.map((d, i) =>
+        i === todayIdx ? "#ffffff" : color
+      );
+
+      // 표시 이름: comment 우선, 없으면 user
+      const label = user.comment || user.user;
+
+      datasets.push({
+        label,
+        data: pts,
+        rawBytes,
+        _origColor:   color,
+        _ptRadii:     ptRadii,
+        _ptBgColors:  ptBgColors,
+        borderColor: color,
+        backgroundColor: color + "22",
+        borderWidth: 2,
+        pointRadius: ptRadii,
+        pointHoverRadius: 8,
+        pointBackgroundColor: ptBgColors,
+        tension: 0.3,
+        spanGaps: true,
+      });
+    });
+
+    // 5. 100% 기준선 dataset
+    datasets.push({
+      label: "100% 한도",
+      data: labels.map(() => 100),
+      borderColor: "rgba(251,113,133,0.55)",
+      borderWidth: 1.5,
+      borderDash: [6, 4],
+      pointRadius: 0,
+      tension: 0,
+      spanGaps: true,
+      order: 99,
+    });
+
+    // 6. Chart.js 렌더
+    const ctx = document.getElementById("mainChart").getContext("2d");
+
+    // y축 최대값: 실제 데이터 최대값 + 여유 10%p (최소 20%)
+    const allValues = datasets
+      .filter(d => d.label !== "100% 한도")
+      .flatMap(d => d.data.filter(v => v !== null));
+    const dataMax = allValues.length ? Math.max(...allValues) : 100;
+    const yMax = Math.ceil(Math.max(dataMax * 1.05, 10) / 5) * 5; // 5% 단위 올림, 여유 최소화
+
+    // 오른쪽 끝 레이블 플러그인
+    const rightLabelPlugin = {
+      id: "rightLabel",
+      afterDatasetsDraw(chart) {
+        const { ctx: c, chartArea: { right }, scales: { y } } = chart;
+        c.save();
+        c.font = "bold 10px ui-sans-serif, system-ui, sans-serif";
+        c.textAlign = "left";
+        c.textBaseline = "middle";
+        chart.data.datasets.forEach((ds, i) => {
+          if (ds.label === "100% 한도") return;
+          const meta = chart.getDatasetMeta(i);
+          if (meta.hidden) return;
+          // 마지막 non-null 포인트 찾기
+          let lastPt = null;
+          for (let j = ds.data.length - 1; j >= 0; j--) {
+            if (ds.data[j] !== null && ds.data[j] !== undefined) {
+              lastPt = meta.data[j];
+              break;
+            }
+          }
+          if (!lastPt) return;
+          c.fillStyle = ds.borderColor;
+          c.fillText(ds.label, right + 18, lastPt.y);
+        });
+        c.restore();
+      }
+    };
+
+    chartInst = new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets },
+      plugins: [rightLabelPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: window.innerWidth < 600 ? 1.2 : 1.9,
+        layout: {
+          padding: { right: 120 }  // 오른쪽 레이블 공간 확보
+        },
+        interaction: { mode: "nearest", intersect: true },  // 가장 가까운 점 1개만
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(11,18,32,0.95)",
+            borderColor: "rgba(255,255,255,0.15)",
+            borderWidth: 1,
+            titleColor: "#e9eefc",
+            bodyColor: "#9fb0d0",
+            padding: 10,
+            callbacks: {
+              title: items => {
+                if (!items.length) return "";
+                const d = items[0].label;
+                return d === todayStr ? `${d}  ★ TODAY (실시간)` : d;
+              },
+              label: item => {
+                if (item.dataset.label === "100% 한도") return null;
+                const idx = item.dataIndex;
+                const bytes = item.dataset.rawBytes ? item.dataset.rawBytes[idx] : null;
+                if (bytes === null || bytes === undefined) return null;
+                const gb = (bytes / 1e9).toFixed(3);
+                return `  ${item.dataset.label}: ${gb} GB`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: "#9fb0d0",
+              font: { size: 11 },
+              maxTicksLimit: window.innerWidth < 480 ? 8 : 16,
+              callback: (_, i) => labels[i] ? labels[i].slice(8) : ""
+            },
+            grid: { color: "rgba(255,255,255,0.06)" }
+          },
+          y: {
+            min: 0,
+            max: yMax,
+            ticks: {
+              color: "#9fb0d0",
+              font: { size: 11 },
+              callback: v => v + "%"
+            },
+            grid: { color: "rgba(255,255,255,0.06)" },
+            title: {
+              display: true,
+              text: "진행율 (%)",
+              color: "#9fb0d0",
+              font: { size: 11 }
+            }
+          }
+        }
+      }
+    });
+
+    buildLegend(datasets.filter(d => d.label !== "100% 한도"));
+    highlightedIndex = null;
+    document.getElementById("btnShowAll").style.display = "none";
+
+    setPill(`${allUsers.length}명`, "ok");
+    setMsg(`✅ 로드 완료 — ${allUsers.length}명, ${labels.length}일간 데이터`, "ok");
+
+  } catch(e) {
+    setPill("오류", "bad");
+    setMsg("❌ " + e.message, "err");
+  }
+}
+
+// 화면 회전 시 차트 비율 재조정
+window.addEventListener("resize", () => {
+  if (chartInst) {
+    chartInst.options.aspectRatio = window.innerWidth < 600 ? 1.2 : 1.9;
+    chartInst.options.scales.x.ticks.maxTicksLimit = window.innerWidth < 480 ? 8 : 16;
+    chartInst.update();
+  }
+});
+
+loadAll();
+</script>
+</body>
+</html>
