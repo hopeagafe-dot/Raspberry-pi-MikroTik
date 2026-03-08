@@ -390,7 +390,12 @@ def load_admin_password():
 # ===== billing_engine_params.json =====
 BILLING_ENGINE_PARAMS_DEFAULT = {
     "_comment": "요금 계산 엔진 상수 설정 파일.",
-    "manager": {"under_limit_deduction": 60, "over_limit_fixed_fee": 110},
+    "billing_inputs": {
+        "base_amount_E1": 80.0,
+        "target_total_F16": 1750.0,
+        "common_prepaid_F21": 50.0
+    },
+    "manager": {"final_deduction": 30},
     "crew": {"over_limit_surcharge": 5, "lowest_usage_deduction": 5, "under_half_threshold": 0.5, "under_half_deduction": 10},
     "apprentice": {"rate": 0.5}
 }
@@ -996,10 +1001,14 @@ def api_billing_engine_params():
         return jsonify({"error": "unauthorized"}), 401
     if request.method == "GET":
         return jsonify(load_billing_engine_params())
-    if current_role() != "superadmin":
-        return jsonify({"error": "superadmin only"}), 403
 
     data = request.get_json(silent=True) or {}
+
+    # billing_inputs(E1/F16/F21)는 admin/superadmin 모두 저장 가능
+    # manager/crew/apprentice 엔진 상수는 superadmin 전용
+    has_engine_sections = any(k in data for k in ("manager", "crew", "apprentice"))
+    if has_engine_sections and current_role() != "superadmin":
+        return jsonify({"error": "엔진 파라미터(manager/crew/apprentice) 수정은 superadmin 전용입니다."}), 403
 
     def _check_positive(v, name):
         if not isinstance(v, (int, float)) or v < 0:
@@ -1009,9 +1018,22 @@ def api_billing_engine_params():
             raise ValueError(f"{name} must be between 0 (exclusive) and 1 (inclusive) (got {v!r})")
 
     try:
+        bi = data.get("billing_inputs", {})
+        if "base_amount_E1" in bi:
+            v = bi["base_amount_E1"]
+            if not isinstance(v, (int, float)) or v < 0:
+                raise ValueError(f"billing_inputs.base_amount_E1 must be a non-negative number (got {v!r})")
+        if "target_total_F16" in bi:
+            v = bi["target_total_F16"]
+            if not isinstance(v, (int, float)) or v < 0:
+                raise ValueError(f"billing_inputs.target_total_F16 must be a non-negative number (got {v!r})")
+        if "common_prepaid_F21" in bi:
+            v = bi["common_prepaid_F21"]
+            if not isinstance(v, (int, float)) or v < 0:
+                raise ValueError(f"billing_inputs.common_prepaid_F21 must be a non-negative number (got {v!r})")
         mg = data.get("manager", {})
-        if "under_limit_deduction" in mg: _check_positive(mg["under_limit_deduction"], "manager.under_limit_deduction")
-        if "over_limit_fixed_fee" in mg: _check_positive(mg["over_limit_fixed_fee"], "manager.over_limit_fixed_fee")
+        if "final_deduction" in mg:
+            _check_positive(mg["final_deduction"], "manager.final_deduction")
         cr = data.get("crew", {})
         if "over_limit_surcharge" in cr: _check_positive(cr["over_limit_surcharge"], "crew.over_limit_surcharge")
         if "lowest_usage_deduction" in cr: _check_positive(cr["lowest_usage_deduction"], "crew.lowest_usage_deduction")
@@ -1026,7 +1048,7 @@ def api_billing_engine_params():
         return jsonify({"error": str(e)}), 400
 
     params = load_billing_engine_params()
-    for section in ("manager", "crew", "apprentice"):
+    for section in ("billing_inputs", "manager", "crew", "apprentice"):
         if section in data and isinstance(data[section], dict):
             if section not in params or not isinstance(params[section], dict):
                 params[section] = {}
@@ -1163,16 +1185,17 @@ def api_billing_run():
         return jsonify({"error": "unauthorized"}), 401
 
     data = request.get_json(silent=True) or {}
+    engine_params = load_billing_engine_params()
+    bi_defaults = engine_params.get("billing_inputs", {})
     try:
-        E1 = float(data.get("base_amount_E1"))
-        F16 = float(data.get("target_total_F16"))
-        F21 = float(data.get("common_prepaid_F21", 0.0))
+        E1  = float(data.get("base_amount_E1",   bi_defaults.get("base_amount_E1",  80.0)))
+        F16 = float(data.get("target_total_F16", bi_defaults.get("target_total_F16", 1750.0)))
+        F21 = float(data.get("common_prepaid_F21", bi_defaults.get("common_prepaid_F21", 50.0)))
     except (TypeError, ValueError):
         return jsonify({"error": "E1/F16/F21 invalid"}), 400
 
     usage_public = load_usage_public()
     users_by_name = usage_public.get("users_by_name", {})
-    engine_params = load_billing_engine_params()
     period_start_utc = _calc_period_start_from_billing_date()
 
     result = _run_billing_engine(usage_public, users_by_name, E1, F16, F21, period_start_utc, engine_params=engine_params)
