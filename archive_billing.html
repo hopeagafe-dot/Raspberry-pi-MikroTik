@@ -1,7 +1,5 @@
 <!doctype html>
 <html lang="ko">
-<head><!doctype html>
-<html lang="ko">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -502,7 +500,7 @@
             <button class="btn primary" id="btnCalc" disabled>정산 실행 (로컬 계산)</button>
           </div>
 
-          <div class="msg" id="billMsg">기본값은 /api/billing 의 최근 params를 읽어 자동 채웁니다.</div>
+          <div class="msg" id="billMsg">기본값은 billing_engine_params.json 에서 자동으로 로드됩니다.</div>
         </div>
 
         <div class="section">
@@ -1415,23 +1413,47 @@ async function loadSnapshot() {
 
 async function loadDefaultBillingParams() {
   try {
-    const data = await fetchJSON("/api/billing");
-    const p = data?.params || {};
-    const E1 = toNumber(p.base_amount_E1, 80);
-    const F16 = toNumber(p.target_total_F16, 1750);
-    const F21 = toNumber(p.common_prepaid_F21, 50);
-    $("E1").value = E1;
+    const data = await fetchJSON("/api/settings/billing_engine_params");
+    const bi = data?.billing_inputs || {};
+    const E1  = toNumber(bi.base_amount_E1,   80);
+    const F16 = toNumber(bi.target_total_F16, 1750);
+    const F21 = toNumber(bi.common_prepaid_F21, 50);
+    $("E1").value  = E1;
     $("F16").value = F16;
     $("F21").value = F21;
     $("billMsg").className = "msg ok";
-    $("billMsg").textContent = `/api/billing params 로 기본값 적용됨 (E1=${E1}, F16=${F16}, F21=${F21})`;
+    $("billMsg").textContent = `billing_engine_params.json 에서 로드됨 (E1=${E1}, F16=${F16}, F21=${F21})`;
   } catch (e) {
     if (String(e.message).includes("세션 만료")) return;
-    $("E1").value = 80;
+    $("E1").value  = 80;
     $("F16").value = 1750;
     $("F21").value = 50;
     $("billMsg").className = "msg";
-    $("billMsg").textContent = "/api/billing 읽기 실패 → 기본값(E1=80,F16=1750,F21=50) 사용";
+    $("billMsg").textContent = "billing_engine_params 읽기 실패 → 기본값(E1=80, F16=1750, F21=50) 사용";
+  }
+}
+
+// E1/F16/F21 → billing_engine_params.json 자동 저장 (정산 실행 시 호출)
+async function autoSaveBillingInputs(E1, F16, F21) {
+  try {
+    const data = await fetchJSON("/api/settings/billing_engine_params", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        billing_inputs: {
+          base_amount_E1: E1,
+          target_total_F16: F16,
+          common_prepaid_F21: F21
+        }
+      })
+    });
+
+    const bi = data?.params?.billing_inputs || {};
+    $("billMsg").className = "msg ok";
+    $("billMsg").textContent =
+      `✅ 정산 완료 · 저장됨 (E1=${bi.base_amount_E1}, F16=${bi.target_total_F16}, F21=${bi.common_prepaid_F21})`;
+  } catch (e) {
+    setMsg("billMsg", `⚠ 정산 완료 · 저장 실패: ${e.message}`, "msg err");
   }
 }
 
@@ -1496,7 +1518,7 @@ function hookEvents() {
 
   $("btnLoad").onclick = () => loadSnapshot();
   $("btnCopyOffset").onclick = () => copyOffsetFromSnapshot();
-  $("btnCalc").onclick = () => {
+  $("btnCalc").onclick = async () => {
     if (!snapshot) return;
 
     const E1 = toNumber($("E1").value, 0);
@@ -1512,7 +1534,9 @@ function hookEvents() {
 
     $("btnCsv").disabled = false;
     setPill("정산 완료", "ok");
-    setMsg("billMsg", `정산 완료 (로컬 계산): E1=${E1}, F16=${F16}, F21=${F21}`, "msg ok");
+    setMsg("billMsg", `정산 완료 (로컬 계산): E1=${E1}, F16=${F16}, F21=${F21} — 저장 중...`, "msg ok");
+
+    await autoSaveBillingInputs(E1, F16, F21);
   };
 
   $("btnCsv").onclick = () => {
