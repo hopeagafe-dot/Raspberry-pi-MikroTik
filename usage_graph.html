@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Usage Analytics - MCE StarLink</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+  <style>
+    :root {
+      --bg-deep: #020617;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --accent: #38bdf8;
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
+      --border: rgba(255, 255, 255, 0.1);
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --accent-orange: #f97316;
+      --accent-purple: #a855f7;
+      --glass: rgba(255, 255, 255, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-deep);
+      background-image: 
+        linear-gradient(rgba(2, 6, 23, 0.8), rgba(2, 6, 23, 0.8)),
+        url('background.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: var(--text-main);
+      padding: 20px 16px;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* 헤더 카드 */
+    .header-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 24px 28px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .header-text h1 {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 900;
+      background: linear-gradient(to bottom, #ffffff 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .header-text p {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    /* 헤더 내 로고 */
+    .header-logo {
+      height: 60px;
+      width: auto;
+      filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9))
+              drop-shadow(0 0 10px rgba(255, 255, 255, 0.5))
+              drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+      transition: transform 0.3s ease, filter 0.3s ease;
+      cursor: pointer;
+    }
+
+    .header-logo:hover {
+      transform: scale(1.05);
+      filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.9))
+              drop-shadow(0 0 16px rgba(255, 255, 255, 0.7))
+              drop-shadow(0 0 24px rgba(255, 255, 255, 0.5));
+    }
+    .user-badge {
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      color: var(--accent);
+    }
+
+    /* 필터 툴바 */
+    .filter-toolbar {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 6px;
+      border-radius: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .filter-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+
+    .filter-btn.active {
+      background: var(--accent);
+      color: #000;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+    }
+
+    .date-picker-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .date-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .date-input:focus {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .date-input::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
+      cursor: pointer;
+    }
+
+    .apply-btn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .apply-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+    }
+
+    /* 통계 카드 그리드 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-value.upload { color: var(--accent-purple); }
+    .stat-value.download { color: var(--accent-green); }
+    .stat-value.total { color: var(--accent); }
+    .stat-value.avg { color: var(--accent-orange); }
+
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* 차트 카드 */
+    .chart-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--glass);
+    }
+
+    .chart-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .chart-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 320px;
+      width: 100%;
+    }
+
+    /* 로딩/에러 */
+    .loading, .error {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+    }
+
+    .loading::before {
+      content: "⏳";
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 16px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .error {
+      color: var(--accent-red);
+      display: none;
+    }
+
+    .error::before {
+      content: "⚠️";
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 16px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* 반응형 - 태블릿 가로 */
+    @media (max-width: 1024px) and (min-width: 769px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .filter-group { flex-wrap: wrap; }
+    }
+
+    /* 반응형 - 모바일/태블릿 세로 */
+    @media (max-width: 768px) {
+      body { padding: 12px; }
+      .header-card { padding: 20px; }
+      .header-left { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .header-logo { height: 50px; }
+      .filter-toolbar { padding: 12px; flex-direction: column; align-items: stretch; }
+      .filter-group { justify-content: center; }
+      .date-picker-group { margin-left: 0; width: 100%; }
+      .chart-container { height: 260px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    }
+
+    /* 반응형 - 작은 모바일 */
+    @media (max-width: 480px) {
+      .header-text h1 { font-size: 1.5rem; }
+      .header-logo { height: 40px; }
+      .filter-btn { font-size: 0.7rem; padding: 6px 10px; }
+      .stats-grid { grid-template-columns: 1fr; gap: 10px; }
+      .stat-value { font-size: 1.5rem; }
+      .chart-container { height: 220px; }
+    }
+
+    /* 가로 모드 최적화 (모바일 가로) */
+    @media (max-height: 600px) and (orientation: landscape) {
+      body { padding: 8px; }
+      .header-card { padding: 16px; }
+      .stats-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+      .stat-card { padding: 12px; }
+      .stat-value { font-size: 1.3rem; }
+      .chart-container { height: 200px; }
+      .filter-toolbar { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <!-- 헤더 -->
+  <div class="header-card">
+    <div class="header-left">
+      <div class="header-text">
+        <h1>Usage Analytics</h1>
+        <p>Daily traffic monitoring & insights</p>
+      </div>
+      <a href="https://www.youtube.com/@marinechiefengineer4293" target="_blank" rel="noopener noreferrer">
+        <img src="MCE_logo.png" alt="MCE StarLink Logo" class="header-logo" />
+      </a>
+    </div>
+    <div class="user-badge" id="user-display">Loading...</div>
+  </div>
+
+  <!-- 로딩 -->
+  <div class="loading" id="loading">Loading data...</div>
+  
+  <!-- 에러 -->
+  <div class="error" id="error">Failed to load data</div>
+
+  <!-- 콘텐츠 (초기 숨김) -->
+  <div id="content" style="display: none;">
+    <!-- 통계 카드 -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Usage</div>
+        <div class="stat-value total" id="total-usage">-</div>
+        <div class="stat-sub" id="total-usage-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Daily Average</div>
+        <div class="stat-value avg" id="daily-avg">-</div>
+        <div class="stat-sub" id="daily-avg-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Peak Day</div>
+        <div class="stat-value upload" id="peak-day">-</div>
+        <div class="stat-sub" id="peak-day-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Today's Usage</div>
+        <div class="stat-value download" id="today-usage">-</div>
+        <div class="stat-sub" id="today-usage-sub">Live (updates every 10s)</div>
+      </div>
+    </div>
+
+    <!-- 필터 툴바 -->
+    <div class="filter-toolbar">
+      <div class="filter-group">
+        <button class="filter-btn" onclick="setLastMonth()">Last Month</button>
+        <button class="filter-btn" onclick="setRange(7)">7 Days</button>
+        <button class="filter-btn" onclick="setRange(14)">14 Days</button>
+        <button class="filter-btn active" onclick="setRange(30)">30 Days</button>
+        <button class="filter-btn" onclick="setThisMonth()">This Month</button>
+      </div>
+      <div class="date-picker-group">
+        <input type="date" id="start-date" class="date-input" />
+        <span style="color: var(--text-dim);">~</span>
+        <input type="date" id="end-date" class="date-input" />
+        <button class="apply-btn" onclick="customRange()">Apply</button>
+      </div>
+    </div>
+
+    <!-- 일일 증가분 차트 -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Daily Usage Increment</div>
+          <div class="chart-subtitle" id="daily-range-text"></div>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="dailyChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 누적 사용량 차트 -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Cumulative Usage</div>
+          <div class="chart-subtitle">Total accumulated data over time</div>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="cumulativeChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== 설정 ====================
+const API_BASE = 'http://192.168.88.31:5000/daily_archives';
+const params = new URLSearchParams(window.location.search);
+const userName = params.get('user') || 'Unknown';
+
+document.getElementById('user-display').textContent = userName;
+
+let dailyChart = null;
+let cumulativeChart = null;
+let processedData = null; // 전역 데이터 저장
+
+// ==================== 유틸리티 함수 ====================
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(1000));
+  return `${(bytes / Math.pow(1000, i)).toFixed(2)} ${sizes[i]}`;
+}
+
+// ==================== UTC 날짜 유틸 ====================
+// 모든 날짜 계산은 UTC 기준으로 처리 (PC/기기의 로컬 시간대 무관)
+
+/** UTC 기준 오늘 날짜를 YYYY-MM-DD 로 반환 */
+function utcTodayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** UTC Date 객체 → YYYY-MM-DD 문자열 */
+function utcDateStr(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/** YYYY-MM-DD 문자열 → UTC 자정 Date 객체 (로컬 시간대 파싱 오류 완전 방지) */
+function parseUTCDate(ymdStr) {
+  return new Date(ymdStr + 'T00:00:00Z');
+}
+
+/** UTC 기준으로 N일 전/후 날짜 문자열 반환 */
+function utcOffsetDateStr(ymdStr, offsetDays) {
+  const d = parseUTCDate(ymdStr);
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  return utcDateStr(d);
+}
+
+// toLocalDateStr → UTC 기준으로 교체 (하위 호환 유지)
+function toLocalDateStr(date) {
+  return utcDateStr(date);
+}
+
+// 차트 툴팁 자동 단위 (1000 기준)
+function formatChartValue(value, baseUnit) {
+  const bytes = baseUnit === 'GB' ? value * 1e9 : value * 1e6;
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.min(Math.floor(Math.log(Math.abs(bytes)) / Math.log(1000)), units.length - 1);
+  return `${(bytes / Math.pow(1000, i)).toFixed(2)} ${units[i]}`;
+}
+
+function formatDate(dateStr) {
+  // UTC 기준 파싱 (new Date('YYYY-MM-DD')는 로컬 자정 파싱으로 날짜 오류 발생)
+  const d = parseUTCDate(dateStr);
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+}
+
+// 날짜 범위 생성
+function getDateRange(startDate, endDate) {
+  // UTC 기준으로 날짜 범위 생성 (로컬 자정 파싱 오류 방지)
+  const dates = [];
+  const current = parseUTCDate(startDate);
+  const end = parseUTCDate(endDate);
+  while (current <= end) {
+    dates.push(utcDateStr(current));
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+// ==================== 데이터 로딩 ====================
+async function loadDailyData(dateStr) {
+  const url = `${API_BASE}/usage_daily_${dateStr}.json`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      // 파일이 없으면 null 반환 (0으로 처리)
+      return null;
+    }
+    const data = await response.json();
+    
+    // 해당 사용자의 데이터 찾기
+    const userObj = data.users.find(u => u.user === userName);
+    if (!userObj) return null;
+    
+    // total_bytes + _offset_bytes 계산 (raw)
+    const rawBytes = (userObj.total_bytes || 0) + (userObj._offset_bytes || 0);
+
+    // 저장 시점의 overhead_pct 적용 (없으면 0 → 보정 없음)
+    const overheadPct = typeof data.overhead_pct === 'number' ? data.overhead_pct : 0;
+    const totalUsage = Math.round(rawBytes * (1 + overheadPct / 100));
+    
+    return {
+      date: dateStr,
+      totalUsage: totalUsage,
+      overheadPct: overheadPct,
+      raw: userObj
+    };
+  } catch (err) {
+    console.warn(`Failed to load ${dateStr}:`, err);
+    return null;
+  }
+}
+
+async function loadDataForRange(startDate, endDate) {
+  // ★ UTC 기준으로 모든 날짜 계산
+  // 안전한 baseline 전략: 시작일 기준 2일 전까지 로드하여
+  // PC/기기 시간대와 UTC 차이로 인한 날짜 오류를 방지
+  // (표시는 startDate~endDate 만 하고, 계산에는 2일 전 값을 활용)
+  const dates = getDateRange(startDate, endDate);
+
+  const baseline2DateStr = utcOffsetDateStr(startDate, -2); // 2일 전
+  const baseline1DateStr = utcOffsetDateStr(startDate, -1); // 1일 전
+
+  console.log(`[loadDataForRange] UTC range: ${startDate} ~ ${endDate}`);
+  console.log(`[loadDataForRange] baseline: ${baseline2DateStr}(2일전), ${baseline1DateStr}(1일전)`);
+
+  const [baseline2Result, baseline1Result, ...rangeResults] = await Promise.all([
+    loadDailyData(baseline2DateStr),
+    loadDailyData(baseline1DateStr),
+    ...dates.map(date => loadDailyData(date))
+  ]);
+
+  // 더 최근의 유효한 baseline 선택 (1일 전 우선, 없으면 2일 전)
+  let baselineResult = baseline1Result || baseline2Result;
+  let baselineDateStr = baseline1Result ? baseline1DateStr : (baseline2Result ? baseline2DateStr : null);
+
+  if (baselineResult) {
+    console.log(`[loadDataForRange] baseline 사용: ${baselineDateStr} = ${baselineResult.totalUsage}`);
+  } else {
+    console.warn(`[loadDataForRange] baseline 없음(${baseline2DateStr}~${baseline1DateStr}) - 첫날은 당일 누적값 사용`);
+  }
+
+  const dataMap = {};
+  dataMap['_baseline'] = baselineResult ? baselineResult.totalUsage : null;
+
+  dates.forEach((date, idx) => {
+    dataMap[date] = rangeResults[idx] ? rangeResults[idx].totalUsage : null;
+  });
+
+  return dataMap;
+}
+
+// ==================== 데이터 처리 ====================
+function processData(dataMap) {
+  const baseline = dataMap['_baseline'];
+  const dates = Object.keys(dataMap).filter(d => d !== '_baseline').sort();
+  const dailyIncrements = [];
+  const cumulativeUsage = [];
+  let cumulativeSum = 0;
+
+  // 이전 날의 유효한 누적값을 추적 (null 건너뛰기용)
+  let lastKnownTotal = baseline; // 초기값: 하루 전 파일 (없으면 null)
+
+  dates.forEach((date, idx) => {
+    const currentTotal = dataMap[date]; // null이면 해당 날 파일 없음
+    let increment = 0;
+    let missing = (currentTotal === null || currentTotal === undefined);
+
+    if (!missing) {
+      if (lastKnownTotal !== null && lastKnownTotal !== undefined) {
+        // ★ 핵심: 하루 전(또는 마지막 알려진) 누적값과 비교하여 당일 증가량 계산
+        increment = currentTotal >= lastKnownTotal
+          ? currentTotal - lastKnownTotal
+          : currentTotal; // 리셋 발생 시 당일 누적값 그대로 사용
+      } else {
+        // 하루 전 파일이 없는 경우 (범위의 첫날이고 baseline도 없음)
+        // → 당일 누적값 그대로 사용 (다른 방법이 없음)
+        increment = currentTotal > 0 ? currentTotal : 0;
+      }
+      lastKnownTotal = currentTotal; // 다음 날 계산의 기준으로 갱신
+    }
+    // missing(파일 없음)이면 increment=0, lastKnownTotal은 갱신하지 않음
+
+    cumulativeSum += increment;
+    dailyIncrements.push({ date, increment, missing });
+    cumulativeUsage.push({ date, cumulative: cumulativeSum, missing });
+  });
+
+  return { dailyIncrements, cumulativeUsage };
+}
+
+// ==================== 통계 계산 ====================
+function updateStats(dailyIncrements) {
+  const totalIncrement = dailyIncrements.reduce((sum, d) => sum + d.increment, 0);
+  const avgIncrement = dailyIncrements.length > 0 ? totalIncrement / dailyIncrements.length : 0;
+  
+  // Peak Day 찾기 (가장 많이 사용한 날)
+  let peakDay = null;
+  let peakValue = 0;
+  dailyIncrements.forEach(d => {
+    if (d.increment > peakValue) {
+      peakValue = d.increment;
+      peakDay = d.date;
+    }
+  });
+  
+  // Total Usage
+  document.getElementById('total-usage').textContent = formatBytes(totalIncrement);
+  document.getElementById('total-usage-sub').textContent = `${dailyIncrements.length} days period`;
+  
+  // Daily Average
+  document.getElementById('daily-avg').textContent = formatBytes(avgIncrement);
+  document.getElementById('daily-avg-sub').textContent = 'per day';
+  
+  // Peak Day
+  if (peakDay) {
+    document.getElementById('peak-day').textContent = formatBytes(peakValue);
+    document.getElementById('peak-day-sub').textContent = formatDate(peakDay);
+  } else {
+    document.getElementById('peak-day').textContent = '-';
+    document.getElementById('peak-day-sub').textContent = 'No data';
+  }
+}
+
+// ==================== 오늘의 사용량 (실시간) ====================
+let todayUsageInterval = null;
+let lastDailyTotal = 0;
+
+async function findMostRecentDailyFile() {
+  // UTC 기준 어제부터 과거 30일까지 검색 (오늘 파일은 아직 생성 안됨)
+  const todayStr = utcTodayStr();
+  
+  for (let i = 1; i <= 30; i++) {  // i=1부터 시작 (어제)
+    const dateStr = utcOffsetDateStr(todayStr, -i);
+    
+    try {
+      const data = await loadDailyData(dateStr);
+      // 데이터가 있고, totalUsage가 실제로 존재하는지 확인
+      if (data && data.totalUsage !== null && data.totalUsage !== undefined) {
+        console.log(`Found recent daily file: ${dateStr}, total: ${data.totalUsage}`);
+        return {
+          date: dateStr,
+          totalUsage: data.totalUsage
+        };
+      }
+    } catch (err) {
+      console.warn(`Error checking ${dateStr}:`, err);
+      continue;  // 에러 발생 시 다음 날짜 확인
+    }
+  }
+  
+  console.warn('No recent daily file found with user data in the last 30 days');
+  return null;
+}
+
+async function updateTodayUsage() {
+  try {
+    const response = await fetch(`http://192.168.88.31:5000/api/usage_public?user=${encodeURIComponent(userName)}`);
+    
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+    
+    const currentData = await response.json();
+    
+    if (currentData.error) {
+      throw new Error(currentData.error);
+    }
+    
+    // 실시간 raw 값
+    const rawTotal = (currentData.total_bytes || 0) + (currentData._offset_bytes || 0);
+    // 현재 billing_date의 overhead_pct 적용 (캐시에서 읽기)
+    const livePct = (billingDateCache && typeof billingDateCache.overhead_display_pct === 'number')
+      ? billingDateCache.overhead_display_pct : 0;
+    const currentTotal = Math.round(rawTotal * (1 + livePct / 100));
+    const todayUsage = Math.max(0, currentTotal - lastDailyTotal);
+    const todayStr = utcTodayStr();
+    
+    // ★ 상단 카드 업데이트
+    document.getElementById('today-usage').textContent = formatBytes(todayUsage);
+    
+    // UTC 시각 표시 (로컬 시간대 무관)
+    const now = new Date();
+    const timeStr = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}:${String(now.getUTCSeconds()).padStart(2, '0')}`;
+    document.getElementById('today-usage-sub').textContent = `Updated at ${timeStr} (UTC)`;
+
+    // ★ 그래프에도 오늘 막대 실시간 반영
+    // processedData가 있고, 오늘이 범위에 포함된 경우에만 업데이트
+    if (processedData && processedData.dailyIncrements) {
+      const todayEntry = processedData.dailyIncrements.find(d => d.date === todayStr);
+      if (todayEntry !== undefined) {
+        // 오늘 막대 값을 실시간 값으로 교체
+        todayEntry.increment = todayUsage;
+
+        // 누적 차트도 재계산
+        let cum = 0;
+        processedData.cumulativeUsage.forEach((cu, idx) => {
+          cum += processedData.dailyIncrements[idx].increment;
+          cu.cumulative = cum;
+        });
+
+        // 차트 데이터만 갱신 (전체 재렌더 없이 효율적으로)
+        if (dailyChart) {
+          const todayIdx = processedData.dailyIncrements.findIndex(d => d.date === todayStr);
+          if (todayIdx >= 0) {
+            dailyChart.data.datasets[0].data[todayIdx] = (todayUsage / 1e6).toFixed(2);
+            dailyChart.update('none'); // 애니메이션 없이 즉시 갱신
+          }
+        }
+        if (cumulativeChart) {
+          processedData.cumulativeUsage.forEach((cu, idx) => {
+            cumulativeChart.data.datasets[0].data[idx] = (cu.cumulative / 1e9).toFixed(3);
+          });
+          cumulativeChart.update('none');
+        }
+
+        // 상단 통계도 갱신
+        updateStats(processedData.dailyIncrements);
+      }
+    }
+    
+  } catch (err) {
+    console.error('Error updating today usage:', err);
+    document.getElementById('today-usage').textContent = 'N/A';
+    document.getElementById('today-usage-sub').textContent = 'Update failed - will retry';
+    // 에러 발생해도 interval은 계속 실행 (다음 10초 후 재시도)
+  }
+}
+
+async function initTodayUsage() {
+  try {
+    // 가장 최근 daily 파일 찾기
+    const recentDaily = await findMostRecentDailyFile();
+    
+    if (recentDaily) {
+      lastDailyTotal = recentDaily.totalUsage;
+      console.log(`Using baseline from ${recentDaily.date}: ${lastDailyTotal} bytes`);
+    } else {
+      lastDailyTotal = 0;
+      console.warn('No baseline found, using 0');
+      // 베이스라인이 없어도 계속 진행
+      document.getElementById('today-usage-sub').textContent = 'No baseline data available';
+    }
+    
+    // 첫 업데이트
+    await updateTodayUsage();
+    
+    // 기존 interval 정리
+    if (todayUsageInterval) {
+      clearInterval(todayUsageInterval);
+    }
+    
+    // 10초마다 자동 업데이트
+    todayUsageInterval = setInterval(updateTodayUsage, 10000);
+  } catch (err) {
+    console.error('Error initializing today usage:', err);
+    document.getElementById('today-usage').textContent = 'N/A';
+    document.getElementById('today-usage-sub').textContent = 'Real-time data unavailable';
+    // 에러가 발생해도 throw하지 않음 - 페이지는 계속 작동
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (todayUsageInterval) {
+      clearInterval(todayUsageInterval);
+      todayUsageInterval = null;
+    }
+  } else {
+    if (!todayUsageInterval) {
+      updateTodayUsage().then(() => {
+        todayUsageInterval = setInterval(updateTodayUsage, 10000);
+      });
+    }
+  }
+});
+function renderDailyChart(dailyIncrements, todayStr) {
+  const ctx = document.getElementById('dailyChart').getContext('2d');
+  if (dailyChart) dailyChart.destroy();
+  
+  const labels = dailyIncrements.map(d => formatDate(d.date));
+  const data = dailyIncrements.map(d => (d.increment / 1e6).toFixed(2)); // MB (1000 기반)
+
+  // 오늘 막대는 초록(실시간)으로 강조, 나머지는 기본 하늘색
+  const bgColors = dailyIncrements.map(d =>
+    d.date === todayStr ? 'rgba(34, 197, 94, 0.75)' : 'rgba(56, 189, 248, 0.6)'
+  );
+  const bdColors = dailyIncrements.map(d =>
+    d.date === todayStr ? 'rgba(34, 197, 94, 1)' : 'rgba(56, 189, 248, 1)'
+  );
+  
+  dailyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Daily Usage (MB)',
+        data: data,
+        backgroundColor: bgColors,
+        borderColor: bdColors,
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#f8fafc', font: { size: 12 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return formatChartValue(context.parsed.y, 'MB');
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#94a3b8', maxRotation: 45, minRotation: 45 },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        },
+        y: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+function renderCumulativeChart(cumulativeUsage, todayStr) {
+  const ctx = document.getElementById('cumulativeChart').getContext('2d');
+  if (cumulativeChart) cumulativeChart.destroy();
+  
+  const labels = cumulativeUsage.map(d => formatDate(d.date));
+  const data = cumulativeUsage.map(d => (d.cumulative / 1e9).toFixed(3)); // GB (1000 기반, 상단 통계와 동일)
+
+  // 오늘 포인트 크기/색상 강조
+  const pointRadii = cumulativeUsage.map(d => d.date === todayStr ? 7 : 3);
+  const pointColors = cumulativeUsage.map(d =>
+    d.date === todayStr ? 'rgba(249, 115, 22, 1)' : 'rgba(34, 197, 94, 1)'
+  );
+  
+  cumulativeChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Cumulative Usage (GB)',
+        data: data,
+        borderColor: 'rgba(34, 197, 94, 1)',
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointRadius: pointRadii,
+        pointHoverRadius: 8,
+        pointBackgroundColor: pointColors
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#f8fafc', font: { size: 12 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return formatChartValue(context.parsed.y, 'GB');
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#94a3b8', maxRotation: 45, minRotation: 45 },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        },
+        y: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+// ==================== 필터 핸들러 ====================
+function resetButtons() {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+}
+
+async function applyFilter(startStr, endStr) {
+  // 현재 스크롤 위치 저장
+  const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+  
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('error').style.display = 'none';
+  
+  try {
+    // 데이터 로드
+    const dataMap = await loadDataForRange(startStr, endStr);
+
+    // ★ 오늘(UTC)이 선택 범위에 포함되고, 오늘 daily 파일이 없는 경우
+    // → 실시간 API(/api/usage_public)에서 현재 누적값을 가져와 dataMap에 주입
+    const todayStr = utcTodayStr();
+    if (endStr >= todayStr && (dataMap[todayStr] === null || dataMap[todayStr] === undefined)) {
+      try {
+        const rtResp = await fetch(`http://192.168.88.31:5000/api/usage_public?user=${encodeURIComponent(userName)}`);
+        if (rtResp.ok) {
+          const rtData = await rtResp.json();
+          if (!rtData.error) {
+            const rtRaw = (rtData.total_bytes || 0) + (rtData._offset_bytes || 0);
+            const rtPct = (billingDateCache && typeof billingDateCache.overhead_display_pct === 'number')
+              ? billingDateCache.overhead_display_pct : 0;
+            const rtTotal = Math.round(rtRaw * (1 + rtPct / 100));
+            dataMap[todayStr] = rtTotal;
+            console.log(`[applyFilter] 오늘(${todayStr}) 실시간 데이터 주입: ${rtTotal} (overhead ${rtPct}%)`);
+          }
+        }
+      } catch (rtErr) {
+        console.warn('[applyFilter] 오늘 실시간 데이터 로드 실패 (무시):', rtErr);
+      }
+    }
+    
+    // 데이터 처리
+    const { dailyIncrements, cumulativeUsage } = processData(dataMap);
+    
+    // 전역 저장
+    processedData = { dailyIncrements, cumulativeUsage };
+    
+    // 통계 업데이트
+    updateStats(dailyIncrements);
+    
+    // 차트 렌더링 (오늘 막대는 실시간 색상으로 강조)
+    renderDailyChart(dailyIncrements, todayStr);
+    renderCumulativeChart(cumulativeUsage, todayStr);
+    
+    // 날짜 범위 표시
+    document.getElementById('daily-range-text').textContent = `${startStr} ~ ${endStr}`;
+    
+    // 화면 표시
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    
+    // 스크롤 위치 복원
+    setTimeout(() => {
+      window.scrollTo(0, scrollPosition);
+    }, 0);
+    
+    // 오늘의 사용량 초기화 (첫 로드시에만, 에러 발생해도 페이지는 정상 작동)
+    if (!todayUsageInterval) {
+      initTodayUsage().catch(err => {
+        console.error('Today usage initialization failed, but page continues:', err);
+        // 에러 발생해도 무시하고 계속 진행
+      });
+    }
+    
+  } catch (err) {
+    console.error('Error loading data:', err);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    
+    // 사용자 친화적인 에러 메시지
+    let errorMsg = 'Failed to load usage data. ';
+    if (err.message.includes('fetch')) {
+      errorMsg += 'Please check your network connection.';
+    } else if (err.message.includes('billing')) {
+      errorMsg += 'Billing configuration error.';
+    } else {
+      errorMsg += 'Please try again later.';
+    }
+    document.getElementById('error').textContent = errorMsg;
+  }
+}
+
+window.setRange = function(days) {
+  resetButtons();
+  const btns = document.querySelectorAll('.filter-btn');
+  btns.forEach(b => {
+    if (b.textContent.includes(days + ' Days')) {
+      b.classList.add('active');
+    }
+  });
+  // UTC 기준으로 날짜 계산 (로컬 시간대 오류 방지)
+  const endStr = utcTodayStr();
+  const startStr = utcOffsetDateStr(endStr, -(days - 1));
+  applyFilter(startStr, endStr);
+};
+
+// ==================== Billing Date 관련 ====================
+// billing_date 캐시 (타임스탬프 기반 - 5초마다 자동 갱신)
+let billingDateCache = null;
+let billingDateCacheTimestamp = null;
+const BILLING_DATE_CACHE_DURATION = 5000; // 5초
+
+async function loadBillingDate(forceRefresh = false) {
+  const now = Date.now();
+  
+  // 캐시가 유효한지 확인 (5초 이내)
+  if (!forceRefresh && billingDateCache && billingDateCacheTimestamp && 
+      (now - billingDateCacheTimestamp) < BILLING_DATE_CACHE_DURATION) {
+    return billingDateCache;
+  }
+  
+  try {
+    const response = await fetch('http://192.168.88.31:5000/api/billing_date');
+    if (!response.ok) throw new Error('Failed to load billing date');
+    billingDateCache = await response.json();
+    billingDateCacheTimestamp = now; // 타임스탬프 업데이트
+    return billingDateCache;
+  } catch (err) {
+    console.error('Error loading billing_date.json:', err);
+    // Fallback to default values
+    return {
+      billing_start_day: 1,
+      last_reset_yyyymmdd: utcTodayStr().replace(/-/g, ''),
+      overhead_display_pct: 0
+    };
+  }
+}
+
+function getDaysInMonth(year, month) {
+  // UTC 기준 해당 월의 마지막 날 계산
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function calculateBillingDay(year, month, billingStartDay) {
+  const daysInMonth = getDaysInMonth(year, month);
+  return Math.min(billingStartDay, daysInMonth);
+}
+
+async function calculateBillingPeriods() {
+  const billingData = await loadBillingDate();
+  const billingStartDay = billingData.billing_start_day || 1;
+
+  // ★ UTC 기준으로 오늘 날짜 계산 (로컬 시간대 무관)
+  const todayStr = utcTodayStr();
+  const todayUTC = parseUTCDate(todayStr);
+  const todayYear  = todayUTC.getUTCFullYear();
+  const todayMonth = todayUTC.getUTCMonth() + 1;
+  const todayDay   = todayUTC.getUTCDate();
+
+  // UTC 기준 해당 월의 마지막 날 계산
+  function utcLastDayOfMonth(y, m) {
+    return new Date(Date.UTC(y, m, 0)).getUTCDate(); // m은 1-based
+  }
+
+  // 이번 달 billing 시작일이 아직 안 지났으면 전달에서 시작
+  let csYear, csMonth;
+  if (todayDay >= billingStartDay) {
+    csYear = todayYear; csMonth = todayMonth;
+  } else {
+    csMonth = todayMonth - 1; csYear = todayYear;
+    if (csMonth < 1) { csMonth = 12; csYear--; }
+  }
+
+  const csDay = Math.min(billingStartDay, utcLastDayOfMonth(csYear, csMonth));
+  const currentStart = `${csYear}-${String(csMonth).padStart(2,'0')}-${String(csDay).padStart(2,'0')}`;
+  const currentEnd   = todayStr; // UTC 오늘
+
+  let psMonth = csMonth - 1, psYear = csYear;
+  if (psMonth < 1) { psMonth = 12; psYear--; }
+  const psDay = Math.min(billingStartDay, utcLastDayOfMonth(psYear, psMonth));
+  const prevStart = `${psYear}-${String(psMonth).padStart(2,'0')}-${String(psDay).padStart(2,'0')}`;
+  // 이전 기간 종료일 = 현재 기간 시작일 하루 전 (UTC)
+  const prevEnd = utcOffsetDateStr(currentStart, -1);
+
+  return {
+    current:  { start: currentStart, end: currentEnd },
+    previous: { start: prevStart,    end: prevEnd    }
+  };
+}
+
+window.setThisMonth = async function() {
+  resetButtons();
+  const btns = document.querySelectorAll('.filter-btn');
+  btns.forEach(b => {
+    if (b.textContent.includes('This Month')) {
+      b.classList.add('active');
+    }
+  });
+  
+  try {
+    const periods = await calculateBillingPeriods();
+    applyFilter(periods.current.start, periods.current.end);
+  } catch (err) {
+    console.error('Error calculating This Month:', err);
+    alert('Failed to calculate billing period');
+  }
+};
+
+window.setLastMonth = async function() {
+  resetButtons();
+  const btns = document.querySelectorAll('.filter-btn');
+  btns.forEach(b => {
+    if (b.textContent.includes('Last Month')) {
+      b.classList.add('active');
+    }
+  });
+  
+  const periods = await calculateBillingPeriods();
+  applyFilter(periods.previous.start, periods.previous.end);
+};
+
+window.customRange = function() {
+  resetButtons();
+  const start = document.getElementById('start-date').value;
+  const end = document.getElementById('end-date').value;
+  
+  if (start && end) {
+    applyFilter(start, end);
+  } else {
+    alert('Please select both start and end dates');
+  }
+};
+
+
+async function initializePage() {
+  const periods = await calculateBillingPeriods();
+  
+  // 날짜 필드를 This Month로 초기화 (UTC 기준)
+  document.getElementById('start-date').value = periods.current.start;
+  document.getElementById('end-date').value = periods.current.end;
+  
+  // 30일 기본값으로 시작
+  window.setRange(30);
+}
+
+// 페이지 로드 시 초기화
+initializePage();
+
+// 페이지 포커스 시 billing_date 갱신 (탭 전환 후 돌아올 때)
+window.addEventListener('focus', async () => {
+  try {
+    // billing_date 강제 갱신
+    await loadBillingDate(true);
+    
+    // billing period 재계산
+    const periods = await calculateBillingPeriods();
+    
+    // 현재 활성화된 필터 확인
+    const activeBtn = document.querySelector('.filter-btn.active');
+    if (activeBtn) {
+      const btnText = activeBtn.textContent;
+      
+      // This Month 버튼이 활성화되어 있으면 갱신
+      if (btnText.includes('This Month')) {
+        window.setThisMonth();
+      }
+      // Last Month 버튼이 활성화되어 있으면 갱신
+      else if (btnText.includes('Last Month')) {
+        window.setLastMonth();
+      }
+      // 사용자 지정 날짜는 그대로 유지
+    }
+  } catch (err) {
+    console.error('Error refreshing billing_date on focus:', err);
+  }
+});
+</script>
+
+<div style="position:fixed;bottom:8px;right:12px;font-size:0.65rem;color:rgba(148,163,184,0.5);pointer-events:none;z-index:999;">v2.3.0</div>
+</body>
+</html>

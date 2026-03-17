@@ -1,0 +1,135 @@
+{
+    "snapshot_type": "daily_auto",
+    "record_date": "2026-03-13",
+    "overhead_pct": 4.1,
+    "users": [
+        {
+            "user": "2EB",
+            "comment": "2/E KJU",
+            "limit_gb": 150.0,
+            "total_bytes": 34315220664,
+            "_last_raw_bytes": 34315220664,
+            "_offset_bytes": 49657176362
+        },
+        {
+            "user": "2E_KJI",
+            "comment": "KangJI_2E",
+            "limit_gb": 150.0,
+            "total_bytes": 34407464923,
+            "_last_raw_bytes": 34407464923,
+            "_offset_bytes": 42803776296
+        },
+        {
+            "user": "2O",
+            "comment": "2/O NGH",
+            "limit_gb": 150.0,
+            "total_bytes": 13903212169,
+            "_last_raw_bytes": 13903212169,
+            "_offset_bytes": 7830486408
+        },
+        {
+            "user": "3E",
+            "comment": "3/E JSH",
+            "limit_gb": 150.0,
+            "total_bytes": 40114621229,
+            "_last_raw_bytes": 40114621229,
+            "_offset_bytes": 24617081433
+        },
+        {
+            "user": "CAPT",
+            "comment": "Master SSY",
+            "limit_gb": 150.0,
+            "total_bytes": 17958369535,
+            "_last_raw_bytes": 17958369535,
+            "_offset_bytes": 14879852385
+        },
+        {
+            "user": "MCE",
+            "comment": "CE_LSY_Manager",
+            "limit_gb": 150.0,
+            "total_bytes": 18535936757,
+            "_last_raw_bytes": 18535936757,
+            "_offset_bytes": 28735475910
+        },
+        {
+            "user": "NewApex",
+            "comment": "Public",
+            "limit_gb": 30.0,
+            "total_bytes": 6611851259,
+            "_last_raw_bytes": 6611851259,
+            "_offset_bytes": 203121534
+        },
+        {
+            "user": "default-trial",
+            "comment": "counters and limits for trial users",
+            "limit_gb": 100.0,
+            "total_bytes": 0,
+            "_last_raw_bytes": 0,
+            "_offset_bytes": 0
+        },
+        {
+            "user": "pes2026",
+            "comment": "Apprentice_AO",
+            "limit_gb": 150.0,
+            "total_bytes": 25904879101,
+            "_last_raw_bytes": 25904879101,
+            "_offset_bytes": 16505344153
+        },
+        {
+            "user": "qq3892",
+            "comment": "Apprentice_AE LSH",
+            "limit_gb": 150.0,
+            "total_bytes": 21956664174,
+            "_last_raw_bytes": 21956664174,
+            "_offset_bytes": 24774671853
+        },
+        {
+            "user": "seong",
+            "comment": "Seong_JiHoon_manager",
+            "limit_gb": 150.0,
+            "total_bytes": 23046112178,
+            "_last_raw_bytes": 23046112178,
+            "_offset_bytes": 22698598973
+        },
+        {
+            "user": "sim12",
+            "comment": "CGE_SGJ",
+            "limit_gb": 150.0,
+            "total_bytes": 20087560498,
+            "_last_raw_bytes": 20087560498,
+            "_offset_bytes": 12090062154
+        },
+        {
+            "user": "suil",
+            "comment": "C/O_suil",
+            "limit_gb": 150.0,
+            "total_bytes": 12476079853,
+            "_last_raw_bytes": 12476079853,
+            "_offset_bytes": 10964453008
+        },
+        {
+            "user": "sunyoung",
+            "comment": "3O LSY",
+            "limit_gb": 150.0,
+            "total_bytes": 13693458062,
+            "_last_raw_bytes": 13693458062,
+            "_offset_bytes": 9765633417
+        },
+        {
+            "user": "thekth0180",
+            "comment": "1O KANG",
+            "limit_gb": 150.0,
+            "total_bytes": 15238578465,
+            "_last_raw_bytes": 15238578465,
+            "_offset_bytes": 5636744695
+        },
+        {
+            "user": "wodn03",
+            "comment": "3/E KJW",
+            "limit_gb": 150.0,
+            "total_bytes": 45815412548,
+            "_last_raw_bytes": 45815412548,
+            "_offset_bytes": 28006194494
+        }
+    ]
+}

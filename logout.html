@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Logged out</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans KR,Arial,sans-serif;background:#0b1e3a;color:#fff}
+  .bg{position:fixed;inset:0;background:url('img/background.jpg') center/cover no-repeat;filter:brightness(.75)}
+  .shade{position:fixed;inset:0;background:rgba(0,0,0,.5)}
+  .wrap{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{width:min(92vw,520px);background:rgba(255,255,255,.1);backdrop-filter:blur(2px);border-radius:16px;padding:22px;border:1px solid rgba(255,255,255,.2);text-align:center}
+  .logo{margin-bottom:10px}
+  .logo img{width:120px;height:auto}
+  h1{margin:8px 0 6px 0}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.15)}
+  .right{text-align:right}
+  a{color:#e5f1ff}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="shade"></div>
+<div class="wrap">
+  <div class="card">
+    <div class="logo"><img src="img/mikrotik_logo.png" alt="MCE / New Apex Logo"></div>
+    <h1>You are logged out.</h1>
+    <table>
+      <tr><td>User</td><td class="right">$(username)</td></tr>
+      <tr><td>Uptime</td><td class="right">$(uptime)</td></tr>
+      <tr><td>Download / Upload</td><td class="right">$(bytes-out-nice) ↓ &nbsp; / &nbsp; $(bytes-in-nice) ↑</td></tr>
+      $(if remain-bytes-total)
+      <tr><td>Remaining Quota</td><td class="right">$(remain-bytes-total-nice)</td></tr>
+      $(endif)
+    </table>
+    <div><a href="$(link-login)">Back to login</a></div>
+  </div>
+</div>
+</body>
+</html>

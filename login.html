@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- 브라우저 캐싱 방지: 항상 최신 로그인 페이지를 받도록 설정 -->
+  <meta http-equiv="pragma" content="no-cache" />
+  <meta http-equiv="expires" content="-1" />
+  <!-- 모바일·PC 모두에서 반응형으로 보이게 하는 설정 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>New Apex | MCE StarLink - Log in</title>
+
+  <style>
+    /* 
+      ⚙ 전역 색상/스타일 변수
+      - 여기서 --card 의 rgba 마지막값(0.92)이 카드 투명도임 (1에 가까울수록 불투명)
+    */
+    :root{
+      --accent:#0a4ea1;                 /* 버튼/제목 등 포인트 색상 */
+      --card: rgba(255,255,255,.60);    /* 카드 배경색 + 투명도 (alpha=0.92) */
+      --text:#222;                      /* 기본 텍스트 색상 */
+    }
+
+    /* 
+      html, body 높이를 100%로 지정해서
+      body에서 flex 가운데 정렬이 정확히 동작하도록 구성
+    */
+    html,body{
+      height:100%;
+      margin:0;
+    }
+
+    body{
+      /* 
+        🌌 배경 이미지 설정
+        - background:url('img/background.jpg') : 이미지 파일 경로
+        - center/cover : 화면 중심에 두고, 화면을 꽉 채우도록 확대/축소
+        - no-repeat fixed : 반복 없이, 스크롤해도 배경은 고정
+      */
+      background:url('img/background.jpg') center/cover no-repeat fixed;
+
+      /* 폰트 우선순위: 시스템 폰트 → Roboto → Noto Sans KR 등 */
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans KR,Arial,sans-serif;
+      color:var(--text);
+
+      /* 
+        🧭 화면 중앙 정렬
+        - display:flex; align-items:center; justify-content:center;
+        => body 전체를 flex 컨테이너로 만들고,
+           그 안의 .wrap 을 화면 가로·세로 정중앙에 위치시킴
+      */
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    /* 
+      📦 .wrap: 카드 전체를 감싸는 바깥 컨테이너
+      - width:min(92vw, 440px)
+        → 화면 폭의 92%와 440px 중 "더 작은 값"을 선택
+        → PC에서는 최대 440px 정도 폭, 모바일에서는 화면폭 기준
+      - padding:10px; → 바깥 여백(카드와 브라우저 가장자리 사이)
+    */
+    .wrap{
+      width:min(92vw,440px);
+      padding:12px;
+    }
+
+    /* 
+      🖼 로고 영역
+      - text-align:center : 가운데 정렬
+      - margin: 위 4px, 아래 12px 정도 여백
+    */
+
+    /*
+    .logo{
+      text-align:center;
+
+      width: 150px;
+      height: 150px;
+
+      margin:4px 0 8px 0;
+    }*/
+    .logo{
+      text-align:center;
+      object-fit: contain;
+        /* ✅ 흰색 빛 번짐 효과       filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));   */
+      filter:
+      drop-shadow(0 0 2px rgba(255, 255, 255, 1))   /* 얇은 흰 테두리 */
+      drop-shadow(0 0 10px rgba(255, 255, 255, 0.7)); /* 바깥쪽 부드러운 글로우 */;
+    }
+
+
+    /* 
+      🖼 로고 이미지
+      - width:140px; : 로고 이미지 가로 크기 (여기서 로고 크기 조절)
+      - height:auto; : 비율 유지
+      - filter:drop-shadow : 살짝 그림자 효과
+    */
+    .logo img{
+      width:160px;
+      height:auto;
+      filter:drop-shadow(0 10px 25px rgba(0,0,0,.55));
+    }
+
+    /* 
+      📱 화면 폭 480px 이하(대부분 스마트폰)에서는 로고 크기를 줄임
+      - width:110px; 로 변경
+    */
+    @media (max-width:480px){
+      .logo img{
+        width:120px;
+      }
+    }
+
+    /* 
+      🧊 .card: 실제 로그인 박스
+      - background:var(--card) → rgba(255,255,255,0.92)
+        → 투명한 하얀색 카드 (투명도 조절은 :root 의 --card 변경)
+      - border-radius:16px; → 모서리 둥글게 (카드 모서리 곡률)
+      - padding:22px 35px; → 카드 안쪽 여백 (상하 22px, 좌우 35px)
+                           → 이 값이 카드의 "세로/가로" 체감 크기에 영향
+      - box-shadow:0 8px 32px ... → 카드 그림자 (입체감)
+      - backdrop-filter:blur(2px); → 배경 약간 블러 (지원 브라우저에서만)
+      ⚠ 카드의 "실제 가로 크기"는
+         .wrap 의 width + .card 의 좌우 padding 으로 결정됨
+         (높이는 내용물 높이 + 상하 padding 으로 자동 결정됨)
+    */
+    .card{
+      background:var(--card);
+      border-radius:18px;
+      padding:22px 40px;
+      box-shadow:0 10px 35px rgba(0,0,0,.35);
+      backdrop-filter:blur(2px);
+    }
+
+    /* 
+      제목 텍스트 스타일
+      - margin: 아래 10px
+      - font-size:18px;
+      - color:var(--accent); → 포인트 색상(파란색 계열)
+      - text-align:center; → 가운데 정렬
+    */
+    h1{
+      margin:0 0 15px 0;
+      font-size:20px;
+      color:var(--accent);
+      text-align:center;
+    }
+
+    /* 각 입력 줄(Username / Password)를 감싸는 컨테이너 */
+    .row{
+      margin-bottom:12px; /* 각 입력 줄 사이 간격 */
+    }
+
+    /* 
+      라벨(Username, Password 글자) 스타일
+      - display:block; → 한 줄 전체 차지
+      - font-size:12px; → 라벨 글씨 크기
+      - margin-bottom:6px; → 라벨과 입력칸 사이 간격
+    */
+    .row label{
+      display:block;
+      font-size:12px;
+      margin-bottom:6px;
+      opacity:.8;
+    }
+
+    /* 
+      ✏ 입력 박스(Username, Password) 스타일
+      - width:100%; → .card 내부에서 가로 폭을 꽉 채움
+      - padding:12px; → 입력칸 안쪽 여백 (실제 박스 높이/너비에 직접 영향)
+      - border-radius:10px; → 모서리 둥글게
+      - border:1px solid #cfd7df; → 테두리 색
+      - font-size:14px; → 입력 글씨 크기
+      - background:#fff; → 입력칸 배경색 (완전 흰색, 투명 아님)
+      👉 입력칸의 "세로 높이"를 키우고 싶으면 padding 값을 키우거나 font-size를 키우면 됨.
+      👉 가로폭은 width:100% 이므로 .card 의 내부 폭에 자동 맞춰짐.
+    */
+    .row input{
+      width:100%;
+      padding:12px;
+      border-radius:10px;
+      border:1px solid #cfd7df;
+      font-size:14px;
+      outline:none;
+      background:#fff;
+      box-sizing:border-box;          /* ⭐ 이 줄 추가 → padding + border 포함한 전체 width 계산 */
+    }
+
+
+    /* 
+      🔘 로그인 버튼 스타일
+      - width:100%; → 카드 폭 기준으로 가로 전체
+      - padding:12px 16px; → 높이, 내부 여백
+      - background:var(--accent); → 파란색 버튼
+      - border-radius:10px; → 버튼 모서리 둥글게
+      - font-weight:700; font-size:15px; → 글자 굵기와 크기
+    */
+    .btn{
+      width:100%;
+      padding:12px 16px;
+      border:0;
+      border-radius:10px;
+      cursor:pointer;
+      background:var(--accent);
+      color:#fff;
+      font-weight:700;
+      font-size:15px;
+    }
+
+    /* 안내문/부가설명 텍스트 영역 */
+    .info{
+      margin-top:10px;
+      font-size:12px;
+      text-align:center;
+      opacity:.9;
+    }
+
+    /* 에러 메시지일 때 적용되는 스타일 (색만 빨간색 + 굵게) */
+    .error{
+      margin:0 0 10px 0;
+      color:#b00020;
+      font-size:13px;
+      text-align:center;
+      font-weight:700;
+    }
+
+    /* 
+      하단 푸터 (Powered by MCE · 호스트네임 · 시각)
+      - font-size:11px; → 작은 글씨
+      - text-align:center; → 가운데 정렬
+    */
+    .foot{
+      margin-top:12px;
+      font-size:11px;
+      text-align:center;
+      opacity:.85;
+    }
+
+    /* 링크 색상 (기본 파란색 계열, 밑줄 제거) */
+    a{
+      color:var(--accent);
+      text-decoration:none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 
+    ================================
+    🔐 CHAP 인증 관련 숨겨진 form
+    ================================
+    - $(if chap-id) 블록은 MikroTik 이 CHAP 모드일 때만 출력됨
+    - 아래 form "sendin" 은 실제로 MD5로 암호화된 비밀번호를 전송하는 용도
+    - 사용자는 보지 못하고, 자바스크립트 doLogin() 이 여기로 값을 채워 넣음
+  -->
+  $(if chap-id)
+  <form name="sendin" action="$(link-login-only)" method="post" style="display:none">
+    <input type="hidden" name="username" />
+    <input type="hidden" name="password" />
+    <input type="hidden" name="dst" value="$(link-orig)" />
+    <input type="hidden" name="popup" value="true" />
+  </form>
+
+  <!-- MikroTik 기본 md5.js (CHAP용 비밀번호 해시 계산) -->
+  <script src="/md5.js"></script>
+
+  <script>
+    /* 
+      doLogin()
+      - 사용자가 화면에서 입력한 username/password를 읽어와서
+        CHAP용 hidden form(sendin)에 MD5로 암호화해 넣고 전송하는 함수
+      - $(chap-id), $(chap-challenge)는 MikroTik이 세션마다 주는 난수
+    */
+    function doLogin() {
+      document.sendin.username.value = document.login.username.value;
+      document.sendin.password.value = hexMD5('$(chap-id)' + document.login.password.value + '$(chap-challenge)');
+      document.sendin.submit();
+      return false;
+    }
+  </script>
+  $(endif)
+
+  <!-- 전체 로그인 UI 컨테이너 -->
+  <div class="wrap">
+    <!-- 상단 로고 영역 -->
+    <div class="logo">
+      <img src="MCE_logo.png" alt="MCE">
+    </div>
+
+    <!-- 반투명 카드 박스 (로그인 폼 포함) -->
+    <div class="card">
+      <h1>New Apex Hotspot</h1>
+
+      <!-- 
+        안내/에러 메시지 영역
+        - $(if error)error$(endif) 에 의해 class="info error" 로 바뀌면 붉은 에러 스타일 적용
+        - error == "" 일 때: 일반 안내문 + Trial 링크 출력
+        - error 존재 시: $(error) 메시지 출력
+      -->
+      <p class="info $(if error)error$(endif)">
+        $(if error == "")Please log in to use the MCE's internet service
+          $(if trial == 'yes')<br/>Free trial available,
+          <a href="$(link-login-only)?dst=$(link-orig-esc)&amp;username=T-$(mac-esc)">click here</a>.$(endif)
+        $(endif)
+        $(if error)$(error)$(endif)
+      </p>
+
+      <!-- 
+        로그인 폼
+        - name="login"
+        - action="$(link-login-only)" → MikroTik Hotspot 로그인 URL
+        - CHAP 모드일 때만 onsubmit="return doLogin()" 이 붙어서
+          실제로는 위의 sendin form 으로 암호화 전송
+      -->
+      <form name="login" action="$(link-login-only)" method="post" $(if chap-id) onsubmit="return doLogin()" $(endif)>
+        <!-- 로그인 후 이동할 목적지 URL (원래 가려던 페이지) -->
+        <input type="hidden" name="dst" value="$(link-orig)" />
+        <!-- popup=true → MikroTik 기본 동작(팝업 창) 관련 플래그 -->
+        <input type="hidden" name="popup" value="true" />
+
+        <!-- Username 입력 줄 -->
+        <div class="row">
+          <label for="username">Username</label>
+          <!-- value="$(username)" : 이전 로그인 실패 시 기존 입력값 유지 -->
+          <!-- required : 반드시 Username은 입력해야 전송 가능 -->
+          <input id="username" name="username" type="text" value="$(username)" autocomplete="username" required>
+        </div>
+
+        <!-- Password 입력 줄 -->
+        <div class="row">
+          <label for="password">Password</label>
+          <!-- 
+            ⚠ 여기서 required가 제거되어 있음
+            → 비밀번호를 비워 놓고도 폼 전송 가능 (특정 운영 정책에 맞춘 커스텀)
+          -->
+          <input id="password" name="password" type="password" autocomplete="current-password">
+        </div>
+
+        <!-- 로그인 버튼 (Connect) -->
+        <button class="btn" type="submit">Connect</button>
+      </form>
+
+      <!-- 푸터: MCE, 선박명, MikroTik hostname, 현재 시간 -->
+      <div class="foot">
+        Powered by <strong>MCE</strong> · New Apex · $(hostname)<br>
+        <span id="now"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* 
+      ⏱ 화면 하단에 "현재 로컬 시간" 한 번 찍어주는 스크립트
+      - 페이지 로드 시 즉시 실행되는 IIFE(즉시 실행 함수)
+      - YYYY-MM-DD HH:MM 형식으로 표시
+      - 매초 갱신하는 것은 아니고, 로딩 시점 1회만 표시
+    */
+    (function(){
+      try{
+        const el = document.getElementById('now');
+        const d = new Date();
+        const s =
+          d.getFullYear() + '-' +
+          String(d.getMonth()+1).padStart(2,'0') + '-' +
+          String(d.getDate()).padStart(2,'0') + ' ' +
+          String(d.getHours()).padStart(2,'0') + ':' +
+          String(d.getMinutes()).padStart(2,'0');
+        if (el) el.textContent = s;
+      }catch(e){
+        /* 시간 표시 실패해도 로그인 기능엔 영향 없으므로 무시 */
+      }
+    })();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,2125 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Archive Billing</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111a2d;
+      --panel2: #0f182a;
+      --text: #e9eefc;
+      --muted: #9fb0d0;
+      --line: rgba(255,255,255,0.10);
+      --brand: #7aa2ff;
+      --brand2: #9ad2ff;
+      --ok: #36d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --shadow: 0 12px 36px rgba(0,0,0,0.35);
+      --radius: 16px;
+      --radius2: 12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(122,162,255,0.20), transparent 60%),
+                  radial-gradient(1000px 600px at 80% 0%, rgba(154,210,255,0.12), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+    a { color: inherit; text-decoration: none; }
+
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 18px 16px 28px; }
+
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between;
+      background: rgba(17,26,45,0.65);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px 14px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      position: sticky; top: 10px; z-index: 20;
+    }
+    .topbar .left { display:flex; align-items:center; gap: 12px; }
+    .title { font-size: 18px; font-weight: 800; letter-spacing: .2px; }
+    .pill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(122,162,255,0.16);
+      border: 1px solid rgba(122,162,255,0.35);
+      color: var(--brand2);
+    }
+    .pill.ok { background: rgba(54,211,153,0.15); border-color: rgba(54,211,153,0.35); color: #bff7e2; }
+    .pill.bad { background: rgba(251,113,133,0.14); border-color: rgba(251,113,133,0.35); color: #ffd0d8; }
+    .right { display:flex; align-items:center; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      transition: transform .06s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+      user-select: none;
+    }
+    .btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.18); }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary { background: rgba(122,162,255,0.22); border-color: rgba(122,162,255,0.45); }
+    .btn.primary:hover { background: rgba(122,162,255,0.28); }
+    .btn.danger { background: rgba(251,113,133,0.16); border-color: rgba(251,113,133,0.45); }
+    .btn.danger:hover { background: rgba(251,113,133,0.22); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .grid {
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: rgba(17,26,45,0.72);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+    }
+    .panel .hd {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between;
+      gap: 10px;
+    }
+    .panel .hd .h {
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: .2px;
+    }
+    .panel .bd { padding: 12px 14px 14px; }
+
+    .tabs { display:flex; gap: 8px; flex-wrap: wrap; }
+    .tab {
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.05);
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .tab.active { background: rgba(122,162,255,0.22); border-color: rgba(122,162,255,0.45); color: var(--text); }
+
+    .search {
+      margin-top: 10px;
+      display:flex; gap: 8px;
+      align-items:center;
+    }
+    .search input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,0.22);
+      color: var(--text);
+      outline: none;
+    }
+    .search input::placeholder { color: rgba(159,176,208,0.7); }
+
+    .filelist {
+      margin-top: 10px;
+      max-height: 520px;
+      overflow:auto;
+      padding-right: 6px;
+    }
+    .file {
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items:center;
+      margin-bottom: 8px;
+      background: rgba(0,0,0,0.16);
+    }
+    .file:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.10); }
+    .file.active { background: rgba(122,162,255,0.18); border-color: rgba(122,162,255,0.45); }
+    .file .name {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.2;
+      word-break: break-all;
+    }
+    .file .meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+    .section { padding: 14px 14px 16px; border-bottom: 1px solid var(--line); }
+    .section:last-child { border-bottom: none; }
+    .section .sh {
+      display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .section .sh .h2 { font-size: 14px; font-weight: 900; }
+    .kv {
+      display:grid;
+      grid-template-columns: 170px 1fr;
+      gap: 8px 10px;
+      font-size: 13px;
+      align-items: baseline;
+    }
+    .kv .k { color: var(--muted); }
+    .kv .v { font-family: var(--mono); font-size: 12px; }
+
+    .inputs {
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 8px;
+    }
+    /* inputs 3칸 고정 — 창 크기 무관 */
+    .field {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.18);
+    }
+    .field label { display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 800; }
+    .field input {
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-family: var(--mono);
+      outline: none;
+    }
+
+    .row-actions { display:flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+    .msg {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,0.14);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .msg.err { border-color: rgba(251,113,133,0.35); background: rgba(251,113,133,0.10); color: #ffd0d8; }
+    .msg.ok { border-color: rgba(54,211,153,0.35); background: rgba(54,211,153,0.10); color: #bff7e2; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align:left; padding: 10px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 13px; }
+    th { font-size: 12px; color: var(--muted); font-weight: 900; letter-spacing: .2px; }
+    td.mono { font-family: var(--mono); font-size: 12px; }
+    .tablewrap {
+      overflow:auto;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.14);
+    }
+    .foot {
+      margin-top: 14px;
+      color: rgba(159,176,208,0.75);
+      font-size: 12px;
+      text-align: center;
+    }
+    
+    /* === 반응형 미디어 쿼리 (usage_graph.html 수준) === */
+    
+    /* 태블릿 (769px ~ 1024px) */
+    @media (max-width: 1024px) and (min-width: 769px) {
+      .container {
+        padding: 20px;
+      }
+      
+      .grid {
+        gap: 12px;
+      }
+      
+      table {
+        font-size: 12px;
+      }
+      
+      th, td {
+        padding: 8px;
+      }
+      
+      .tablewrap {
+        overflow-x: auto;
+      }
+    }
+    
+    /* 모바일 (< 768px) */
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px;
+      }
+      
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      
+      .inputs {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      
+      .panel .hd {
+        padding: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .panel .bd {
+        padding: 12px;
+      }
+      
+      table {
+        font-size: 11px;
+      }
+      
+      th, td {
+        padding: 8px 6px;
+      }
+      
+      .tablewrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      .kv {
+        grid-template-columns: 120px 1fr;
+        gap: 6px 8px;
+        font-size: 12px;
+      }
+      
+      .filelist {
+        max-height: 400px;
+      }
+      
+      .file .name {
+        font-size: 11px;
+      }
+    }
+    
+    /* 작은 모바일 (< 480px) */
+    @media (max-width: 480px) {
+      .container {
+        padding: 12px;
+      }
+      
+      .hd .h {
+        font-size: 13px;
+      }
+      
+      .panel .hd {
+        padding: 10px;
+      }
+      
+      .panel .bd {
+        padding: 10px;
+      }
+      
+      table {
+        font-size: 10px;
+      }
+      
+      th, td {
+        padding: 6px 4px;
+      }
+      
+      .kv {
+        grid-template-columns: 100px 1fr;
+        gap: 4px 6px;
+        font-size: 11px;
+      }
+      
+      .kv .v {
+        font-size: 11px;
+      }
+      
+      .btn, button {
+        font-size: 11px;
+        padding: 8px 12px;
+      }
+      
+      .tabs {
+        gap: 6px;
+      }
+      
+      .tab {
+        font-size: 11px;
+        padding: 6px 8px;
+      }
+      
+      .file {
+        padding: 8px;
+      }
+      
+      .file .name {
+        font-size: 10px;
+      }
+      
+      .file .meta {
+        font-size: 10px;
+      }
+      
+      .filelist {
+        max-height: 300px;
+      }
+    }
+    
+    /* 가로모드 (작은 화면) */
+    @media (max-height: 600px) and (orientation: landscape) {
+      .container {
+        padding: 12px 16px;
+      }
+      
+      .panel .hd {
+        padding: 10px 12px;
+      }
+      
+      .panel .bd {
+        padding: 10px 12px;
+      }
+      
+      .filelist {
+        max-height: 300px;
+      }
+      
+      table {
+        font-size: 11px;
+      }
+      
+      th, td {
+        padding: 6px 8px;
+      }
+      
+      .grid {
+        gap: 10px;
+      }
+    }
+
+    /* ===== 환율 위젯 ===== */
+    .fx-widget {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(122,162,255,0.08);
+      border: 1px solid rgba(122,162,255,0.25);
+      border-radius: 12px;
+      padding: 7px 12px;
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+    .fx-rate-display {
+      font-weight: 900;
+      font-size: 14px;
+      color: #9ad2ff;
+      font-family: var(--mono);
+      min-width: 90px;
+    }
+    .fx-label {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .fx-date-input {
+      padding: 5px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(122,162,255,0.35);
+      background: rgba(0,0,0,0.3);
+      color: var(--text);
+      font-size: 12px;
+      font-family: var(--mono);
+      width: 148px;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+    .fx-date-input:hover {
+      border-color: rgba(122,162,255,0.65);
+    }
+    .fx-date-input:focus {
+      outline: none;
+      border-color: #7aa2ff;
+      background: rgba(122,162,255,0.08);
+    }
+    /* 달력 아이콘 밝게 */
+    .fx-date-input::-webkit-calendar-picker-indicator {
+      filter: invert(0.75) sepia(1) saturate(3) hue-rotate(190deg);
+      cursor: pointer;
+      padding: 0 2px;
+    }
+    .fx-btn {
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(122,162,255,0.4);
+      background: rgba(122,162,255,0.15);
+      color: #9ad2ff;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .fx-btn:hover { background: rgba(122,162,255,0.25); }
+    .fx-source {
+      font-size: 10px;
+      color: rgba(159,176,208,0.6);
+    }
+  </style>
+  <!-- SheetJS with style support (xlsx-js-style) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="left">
+        <div class="title">Archive Billing</div>
+        <div id="pill" class="pill">대기중</div>
+      </div>
+      <!-- ===== 환율 위젯 ===== -->
+      <div class="fx-widget">
+        <div>
+          <div class="fx-label">USD/KRW</div>
+          <div class="fx-rate-display" id="fxRateDisplay">로딩중...</div>
+          <div class="fx-source" id="fxRateDate"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <div style="display:flex;align-items:center;gap:5px;">
+            <input type="date" class="fx-date-input" id="fxDateInput" title="조회할 날짜 선택"/>
+            <button class="fx-btn" id="fxQueryBtn">조회</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <button class="fx-btn" id="fxTodayBtn" style="font-size:10px;padding:3px 8px;">오늘</button>
+            <span class="fx-source" id="fxStatus"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="right">
+        <button class="btn" id="btnManager">Manager</button>
+        <button class="btn" id="btnEngineParams" style="display:none;" title="요금 계산 엔진 상수 편집">⚙ 엔진 파라미터</button>
+        <button class="btn" id="btnRefresh">목록 새로고침</button>
+        <button class="btn danger" id="btnLogout">Logout</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="panel">
+        <div class="hd">
+          <div class="h">Archives</div>
+          <div class="tabs" id="tabs">
+            <div class="tab" data-kind="manual">Manual</div>
+            <div class="tab" data-kind="daily">Daily</div>
+            <div class="tab active" data-kind="monthly">Monthly</div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="search">
+            <input id="q" type="text" placeholder="파일명 필터 (예: 202512, daily, usage_total ...)"/>
+          </div>
+          <div class="filelist" id="filelist"></div>
+          <div class="msg" id="leftMsg">목록을 불러오는 중...</div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="panel">
+        <div class="section">
+          <div class="sh">
+            <div class="h2">Snapshot Info</div>
+            <div class="row-actions">
+              <button class="btn" id="btnCopyOffset" disabled style="display:none; background:rgba(251,191,36,0.18); border-color:rgba(251,191,36,0.45);" title="선택 파일의 total_bytes → usage_public.json의 _offset_bytes 에 복사 (SUPERADMIN 전용)">⚙ Offset 복사</button>
+              <button class="btn" id="btnLoad" disabled>선택 파일 Load</button>
+            </div>
+          </div>
+
+          <div class="kv">
+            <div class="k">kind</div><div class="v" id="metaKind">-</div>
+            <div class="k">filename</div><div class="v" id="metaFile">-</div>
+            <div class="k">timestamp</div><div class="v" id="metaTs">-</div>
+            <div class="k">overhead_pct</div><div class="v" id="metaOverhead" style="font-family:var(--mono);font-size:12px;">-</div>
+          </div>
+
+          <div class="msg" id="rightMsg">좌측에서 파일을 선택하세요.</div>
+        </div>
+
+        <div class="section">
+          <div class="sh">
+            <div class="h2">Billing Inputs</div>
+          </div>
+
+          <div class="inputs">
+            <div class="field">
+              <label>E1 (base_amount)</label>
+              <input id="E1" type="number" step="0.01" placeholder="예: 80"/>
+            </div>
+            <div class="field">
+              <label>F16 (target_total)</label>
+              <input id="F16" type="number" step="0.01" placeholder="예: 1750"/>
+            </div>
+            <div class="field">
+              <label>F21 (문화오락비 지원)</label>
+              <input id="F21" type="number" step="0.01" placeholder="예: 50"/>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <button class="btn primary" id="btnCalc" disabled>정산 실행 (로컬 계산)</button>
+          </div>
+
+          <div class="msg" id="billMsg">기본값은 billing_engine_params.json 에서 자동으로 로드됩니다.</div>
+        </div>
+
+        <div class="section">
+          <div class="sh">
+            <div class="h2">USAGE Preview</div>
+          </div>
+          <div class="tablewrap">
+            <table id="tblPreview">
+              <thead>
+                <tr>
+                  <th>user</th>
+                  <th>comment</th>
+                  <th>role</th>
+                  <th>limit_gb</th>
+                  <th>usage_gb</th>
+                  <th>prepaid $ ✎</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="sh">
+            <div class="h2">Billing Result</div>
+            <div class="row-actions">
+              <button class="btn" id="btnCsv" disabled>📥 XLSX 다운로드</button>
+            </div>
+          </div>
+          <div class="tablewrap">
+            <table id="tblResult">
+              <thead>
+                <tr>
+                  <th>user</th>
+                  <th>comment</th>
+                  <th>role</th>
+                  <th>usage_gb</th>
+                  <th>base_fee</th>
+                  <th>variable_fee</th>
+                  <th>Total $</th>
+                  <th>Total ￦</th>
+                  <th>$/G</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="msg" id="sumMsg">정산 실행 후 summary가 여기에 표시됩니다.</div>
+        </div>
+      </div>
+    </div>
+
+
+  <!-- ===== 엔진 파라미터 편집 모달 (SUPERADMIN 전용) ===== -->
+  <div id="engineParamsBackdrop" style="
+    display:none; position:fixed; inset:0; z-index:100;
+    background:rgba(5,10,28,0.78); backdrop-filter:blur(6px);
+    justify-content:center; align-items:center;">
+
+    <div style="
+      background:linear-gradient(135deg,#111a2d 0%,#0b1220 100%);
+      border:1px solid rgba(122,162,255,0.3);
+      border-radius:20px; box-shadow:0 24px 60px rgba(0,0,0,0.6);
+      width:min(700px,96vw); max-height:90vh;
+      overflow-y:auto; padding:0;">
+
+      <!-- 모달 헤더 -->
+      <div style="
+        padding:18px 22px 14px; border-bottom:1px solid rgba(255,255,255,0.08);
+        display:flex; align-items:center; justify-content:space-between;
+        position:sticky; top:0; background:linear-gradient(135deg,#111a2d,#0b1220);
+        z-index:10; border-radius:20px 20px 0 0;">
+        <div>
+          <div style="font-size:16px; font-weight:900; letter-spacing:.2px;">⚙ 요금 계산 엔진 파라미터</div>
+          <div style="font-size:11px; color:#9fb0d0; margin-top:3px;">
+            billing_engine_params.json 에 저장됩니다 · admin/superadmin
+          </div>
+        </div>
+        <button class="btn" id="btnCloseEngineParams" style="padding:7px 12px; font-size:13px;">✕ 닫기</button>
+      </div>
+
+      <!-- 모달 바디 -->
+      <div style="padding:18px 22px 22px;">
+
+        <!-- 수식 설명 -->
+        <div style="
+          border:1px solid rgba(122,162,255,0.15); border-radius:14px;
+          padding:14px 16px; margin-bottom:16px;
+          background:rgba(122,162,255,0.06); font-size:11px; color:#9fb0d0; line-height:1.8;">
+          <div style="font-weight:900; color:#7aa2ff; margin-bottom:6px;">📐 정산 공식</div>
+          <code style="font-family:var(--mono); color:#e9eefc;">
+            slope = (F16 - F21 + nMgr×매니저할인 + nAp×실습생할인 - N×E1) / 전체사용량<br/>
+            Total $ = E1 + slope × usage_gb<br/>
+            매니저/실습생: Total $ − 할인액 &nbsp;|&nbsp; 합계 + F21 = F16 ✅
+          </code>
+        </div>
+
+        <!-- Manager 할인 -->
+        <div style="
+          border:1px solid rgba(154,210,255,0.2); border-radius:14px;
+          padding:16px 18px; margin-bottom:14px;
+          background:rgba(154,210,255,0.05);">
+          <div style="font-size:13px; font-weight:900; color:#9ad2ff; margin-bottom:10px;">
+            🖥️ 매니저 할인요금 ($)
+          </div>
+          <div style="font-size:10px; color:#7aa2ff; margin-bottom:8px; line-height:1.5;">
+            매니저의 순수요금(E1 + slope×usage)에서 차감할 고정 할인액.<br/>
+            예: 순수요금 $158, 할인 $30 → 최종 <b>$128</b>
+          </div>
+          <input id="ep_mg_discount" type="number" step="1" min="0"
+            style="width:160px; padding:10px; border-radius:10px;
+            border:1px solid rgba(154,210,255,0.3);
+            background:rgba(0,0,0,0.25); color:#9ad2ff;
+            font-family:ui-monospace,monospace; font-size:16px; font-weight:900;"/>
+          <span style="margin-left:8px; color:#9fb0d0; font-size:12px;">$ 할인</span>
+        </div>
+
+        <!-- Apprentice 할인 -->
+        <div style="
+          border:1px solid rgba(251,191,36,0.2); border-radius:14px;
+          padding:16px 18px; margin-bottom:20px;
+          background:rgba(251,191,36,0.05);">
+          <div style="font-size:13px; font-weight:900; color:#fbbf24; margin-bottom:10px;">
+            🎓 실습생 할인요금 ($)
+          </div>
+          <div style="font-size:10px; color:#fbbf24; margin-bottom:8px; line-height:1.5;">
+            실습생의 순수요금(E1 + slope×usage)에서 차감할 고정 할인액.<br/>
+            예: 순수요금 $120, 할인 $30 → 최종 <b>$90</b>
+          </div>
+          <input id="ep_ap_discount" type="number" step="1" min="0"
+            style="width:160px; padding:10px; border-radius:10px;
+            border:1px solid rgba(251,191,36,0.3);
+            background:rgba(0,0,0,0.25); color:#fbbf24;
+            font-family:ui-monospace,monospace; font-size:16px; font-weight:900;"/>
+          <span style="margin-left:8px; color:#9fb0d0; font-size:12px;">$ 할인</span>
+        </div>
+
+        <!-- 액션 버튼 -->
+        <div style="display:flex; gap:10px; justify-content:flex-end; align-items:center;">
+          <div id="epMsg" style="
+            flex:1; font-size:12px; color:#9fb0d0;
+            padding:8px 12px; border-radius:10px;
+            border:1px solid transparent;
+            background:transparent;"></div>
+          <button class="btn" id="btnEpReset" style="font-size:13px;">기본값으로 초기화</button>
+          <button class="btn primary" id="btnEpSave" style="font-size:13px; font-weight:900;">💾 저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <div class="foot">
+      Templates 경로: <span style="font-family:var(--mono);">~/Templates/archive_billing.html</span> (동일 폴더에 배치)
+    </div>
+  </div>
+
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+
+let currentKind = "monthly";
+let files = [];
+let selectedFile = null;
+let snapshot = null;
+let lastBillingResult = null;
+
+// ===== 요금 엔진 파라미터 (billing_engine_params.json에서 로드) =====
+let engineParams = {
+  manager:    { discount: 30 },
+  apprentice: { discount: 30 }
+};
+let currentRole = "admin";  // /api/whoami 에서 로드됨
+let billingStartDay = 1;       // billing_date.json의 billing_start_day
+let snapshotOverheadPct = 0.0; // 로드된 스냅샷의 overhead_pct
+
+function setPill(text, cls="") {
+  const pill = $("pill");
+  pill.className = "pill" + (cls ? " " + cls : "");
+  pill.textContent = text;
+}
+
+function toNumber(v, def=0) {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : def;
+}
+
+function pyRound(x, ndigits=0) {
+  // Python-like banker’s rounding (best-effort for JS float)
+  if (!Number.isFinite(x)) return x;
+  const factor = Math.pow(10, ndigits);
+  let y = x * factor;
+
+  const sign = y < 0 ? -1 : 1;
+  y = Math.abs(y);
+
+  const f = Math.floor(y);
+  const diff = y - f;
+
+  const eps = 1e-12;
+  let r;
+  if (diff > 0.5 + eps) r = f + 1;
+  else if (diff < 0.5 - eps) r = f;
+  else r = (f % 2 === 0) ? f : (f + 1);
+
+  return sign * (r / factor);
+}
+
+function fmt(n, d=3) {
+  const x = Number.isFinite(n) ? n : 0;
+  return x.toFixed(d);
+}
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+async function fetchJSON(url, opts={}, timeoutMs=12000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...opts, signal: controller.signal });
+    clearTimeout(timer);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      throw new Error("세션 만료 — 로그인 페이지로 이동합니다.");
+    }
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status}: ${t || res.statusText}`);
+    }
+    return await res.json();
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === "AbortError")
+      throw new Error("서버 응답 없음(타임아웃). Flask가 단일스레드로 막혀있을 수 있습니다. mce_admin_api.py를 재시작하세요.");
+    throw e;
+  }
+}
+
+function normalizeUsagePublic(obj) {
+  const usage = obj && typeof obj === "object" ? obj : {};
+  // users can be: array OR dict OR missing but users_by_name exists
+  let users = usage.users;
+
+  if (Array.isArray(users)) {
+    return { ...usage, users };
+  }
+  if (users && typeof users === "object") {
+    const arr = [];
+    for (const [name, info] of Object.entries(users)) {
+      if (info && typeof info === "object") {
+        arr.push({ user: name, ...info });
+      }
+    }
+    return { ...usage, users: arr };
+  }
+  if (usage.users_by_name && typeof usage.users_by_name === "object") {
+    const arr = [];
+    for (const [name, info] of Object.entries(usage.users_by_name)) {
+      if (info && typeof info === "object") {
+        arr.push({ user: name, ...info });
+      }
+    }
+    return { ...usage, users: arr };
+  }
+  return { ...usage, users: [] };
+}
+
+// ===== comment/name 기반 역할 추론 (컨펌 C 수정 버전) =====
+function inferRole(name, comment) {
+    const n = (name || "").toLowerCase();
+    const c = (comment || "").toLowerCase();
+    if (n.includes("default")) return "public";
+    if (n.includes("public"))  return "public";
+    if (n.includes("manager")) return "manager";
+    if (c.includes("manager")) return "manager";
+    if (c.includes("apprentice")) return "apprentice";
+    if (c.includes("public"))  return "public";
+    return "crew";
+}
+
+function extractUserCfg(snap) {
+  // expected: snap.user_config.users (list)
+  const uc = snap?.user_config || snap?.user_cfg || snap?.config || null;
+  if (uc && typeof uc === "object") {
+    let users = uc.users;
+    if (Array.isArray(users)) return { users };
+    if (users && typeof users === "object") {
+      // dict -> array
+      const arr = [];
+      for (const [k,v] of Object.entries(users)) {
+        if (v && typeof v === "object") arr.push({ user: k, ...v });
+      }
+      return { users: arr };
+    }
+  }
+  // fallback: if snap already has users array in a flat shape
+  if (Array.isArray(snap?.users)) return { users: snap.users };
+  return { users: [] };
+}
+
+function extractUsagePublic(snap) {
+  return normalizeUsagePublic(
+    snap?.usage_public || snap?.usage || snap?.usage_public_out || snap?.usage_public_json || {}
+  );
+}
+
+function buildPreviewRows(snap) {
+  // 신규 포맷 우선: snap.users에 comment/limit_gb 포함
+  // 구형 포맷 호환: snap.user_config.users / snap.usage_public
+  const hasNewFormat = Array.isArray(snap?.users) && snap.users.length > 0 && snap.users[0]?.comment !== undefined;
+
+  if (hasNewFormat) {
+    // 신규 포맷: {user, comment, limit_gb, total_bytes, _last_raw_bytes, _offset_bytes}
+    const oPct = typeof snap?.overhead_pct === "number" ? snap.overhead_pct : snapshotOverheadPct;
+    const oMult = 1 + oPct / 100;
+    const rows = [];
+    for (const u of snap.users) {
+      const name = u?.user;
+      if (!name) continue;
+      const comment = u?.comment ?? "";
+      const role = inferRole(name, comment);
+      if (role === "public") continue;
+
+      let effB = 0;
+      try {
+        const b = parseInt(u.total_bytes ?? 0, 10) || 0;
+        const off = parseInt(u._offset_bytes ?? 0, 10) || 0;
+        effB = Math.max(0, b + off);
+      } catch(e) { effB = 0; }
+      const usageGb = effB / (1000 ** 3) * oMult;  // overhead 보정 적용
+      const limit = toNumber(u?.limit_gb, 100.0);
+      const D = (limit > 0) ? (usageGb / limit) : 0.0;
+
+      rows.push({
+        name,
+        display_name: comment || name,
+        role,
+        limit_gb: limit,
+        usage_gb: usageGb,
+        D,
+        personal_prepaid: 0.0,
+        base_fee_override: null
+      });
+    }
+    return rows;
+  }
+
+  // 구형 호환 경로
+  const oPctLeg = snapshotOverheadPct;
+  const oMultLeg = 1 + oPctLeg / 100;
+  const usage = extractUsagePublic(snap);
+  const cfg = extractUserCfg(snap);
+
+  const usageMap = {};
+  for (const u of (usage.users || [])) {
+    const name = u?.user;
+    if (!name) continue;
+    let gb = 0.0;
+    if (u && Object.prototype.hasOwnProperty.call(u, "total_bytes")) {
+      let b = 0;
+      try { b = parseInt(u.total_bytes ?? 0, 10); } catch(e) { b = 0; }
+      if (!Number.isFinite(b)) b = 0;
+      let offB = 0;
+      try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) { offB = 0; }
+      if (!Number.isFinite(offB)) offB = 0;
+      gb = Math.max(0, b + offB) / (1000 ** 3) * oMultLeg;
+    } else {
+      gb = toNumber(u?.total_gb ?? u?.usage_gb, 0.0) * oMultLeg;
+    }
+    usageMap[name] = gb;
+  }
+
+  const rows = [];
+  for (const u of (cfg.users || [])) {
+    const name = u?.user;
+    if (!name) continue;
+    const comment = u?.comment ?? "";
+    const role = u?.role ?? inferRole(name, comment);
+    if (role === "public") continue;
+    const display = (u?.display_name != null && u?.display_name !== "") ? u.display_name : (comment || name);
+    const limit = toNumber(u?.limit_gb, 100.0);
+    const personal = toNumber(u?.personal_prepaid, 0.0);
+    const override = (u && Object.prototype.hasOwnProperty.call(u, "base_fee_override")) ? u.base_fee_override : null;
+
+    let initGb = toNumber(u?.initial_usage_gb, 0.0);
+    if (u && Object.prototype.hasOwnProperty.call(u, "initial_usage_bytes")) {
+      let initB = 0;
+      try { initB = parseInt(u.initial_usage_bytes ?? 0, 10); } catch(e) { initB = 0; }
+      if (Number.isFinite(initB)) initGb = initB / (1000 ** 3);
+    }
+    if (u && Object.prototype.hasOwnProperty.call(u, "total_bytes")) {
+      let b = 0, offB = 0;
+      try { b = parseInt(u.total_bytes ?? 0, 10); } catch(e) {}
+      try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) {}
+      initGb = Math.max(0, b + offB) / (1000 ** 3);
+    }
+
+    const usageGb = (name in usageMap) ? usageMap[name] : initGb;
+    const D = (limit > 0) ? (usageGb / limit) : 0.0;
+
+    rows.push({
+      name, display_name: display, role,
+      limit_gb: limit, usage_gb: usageGb,
+      D, personal_prepaid: personal,
+      base_fee_override: override
+    });
+  }
+
+  rows.sort((a,b) => (a.name > b.name ? 1 : -1));
+  return rows;
+}
+
+function renderPreview(rows) {
+  const tb = $("tblPreview").querySelector("tbody");
+  tb.innerHTML = "";
+
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    const isPrepaid = (r.personal_prepaid || 0) > 0;
+    if (isPrepaid) {
+      tr.style.background = "rgba(251,191,36,0.08)";
+      tr.style.borderLeft = "3px solid rgba(251,191,36,0.35)";
+    }
+    tr.innerHTML = `
+      <td class="mono">${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.display_name)}</td>
+      <td class="mono">${escapeHtml(r.role)}</td>
+      <td class="mono">${fmt(r.limit_gb, 1)}</td>
+      <td class="mono">${fmt(r.usage_gb, 3)}</td>
+      <td class="mono"><input type="number" step="0.01" min="0"
+        style="width:80px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);
+               border-radius:8px;color:var(--warn);font-family:var(--mono);font-size:12px;
+               padding:4px 6px;text-align:right;"
+        data-prepaid="${escapeHtml(r.name)}"
+        placeholder="0"
+        value="${(r.personal_prepaid || 0) > 0 ? fmt(r.personal_prepaid, 2) : ""}"/></td>
+    `;
+    tb.appendChild(tr);
+  }
+}
+
+function getPersonalPrepaidMap() {
+  const map = {};
+  document.querySelectorAll("[data-prepaid]").forEach(inp => {
+    map[inp.dataset.prepaid] = toNumber(inp.value, 0);
+  });
+  return map;
+}
+
+function getOverrideMap() {
+  const map = {};
+  document.querySelectorAll("[data-override]").forEach(inp => {
+    const v = inp.value.trim();
+    if (v !== "") {
+      const n = parseFloat(v);
+      if (Number.isFinite(n)) map[inp.dataset.override] = n;
+    }
+  });
+  return map;
+}
+
+function billingEngineLikeServer(snap, E1, F16, F21, ep, prepaidMap) {
+  // ── 신규 slope 기반 정산 엔진 (Prepaid 지원) ──
+  // Prepaid 사용자: final_fee = prepaid 고정 (slope 계산 제외)
+  // 나머지 사용자: Total $ = E1 + slope × usage_gb
+  // slope = (F16 - F21 - sumPrepaid + nMgr×mgDisc + nAp×apDisc - N_slope×E1) / total_usage_slope
+  // 검증: sumFinal + F21 = F16
+
+  const hasNewFormat = Array.isArray(snap?.users) && snap.users.length > 0 && snap.users[0]?.comment !== undefined;
+  const usage = hasNewFormat ? { users: snap.users } : extractUsagePublic(snap);
+  const cfg   = hasNewFormat ? { users: snap.users } : extractUserCfg(snap);
+
+  // overhead_pct: 스냅샷 저장값 우선, 없으면 전역값
+  const oPct  = typeof snap?.overhead_pct === "number" ? snap.overhead_pct : snapshotOverheadPct;
+  const oMult = 1 + oPct / 100;
+
+  // usage map 구성
+  const usageMap = {};
+  for (const u of (usage.users || [])) {
+    const name = u?.user;
+    if (!name) continue;
+    let gb = 0.0;
+    if (u && Object.prototype.hasOwnProperty.call(u, "total_bytes")) {
+      let b = 0, offB = 0;
+      try { b = parseInt(u.total_bytes ?? 0, 10); } catch(e) {}
+      if (!Number.isFinite(b)) b = 0;
+      try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) {}
+      if (!Number.isFinite(offB)) offB = 0;
+      gb = Math.max(0, b + offB) / (1000 ** 3) * oMult;  // overhead 보정
+    } else {
+      gb = toNumber(u?.total_gb ?? u?.usage_gb, 0.0) * oMult;  // overhead 보정
+    }
+    usageMap[name] = gb;
+  }
+
+  // rawUsers 구성 + public GB 별도 집계
+  const rawUsers = [];
+  let publicUsageGb = 0.0;
+  for (const u of (cfg.users || [])) {
+    const name = u?.user;
+    if (!name) continue;
+    const comment = u?.comment ?? "";
+    const role = u?.role ?? inferRole(name, comment);
+    if (role === "public") {
+      // public 유저 사용량 합산 (summary 표시용)
+      publicUsageGb += (name in usageMap) ? usageMap[name] : toNumber(u?.initial_usage_gb, 0.0);
+      continue;
+    }
+    const displayName = (u?.display_name != null && u?.display_name !== "") ? u.display_name : (comment || name);
+
+    let initGb = toNumber(u?.initial_usage_gb, 0.0) * oMult;
+    if (u && Object.prototype.hasOwnProperty.call(u, "initial_usage_bytes")) {
+      let initB = 0;
+      try { initB = parseInt(u.initial_usage_bytes ?? 0, 10); } catch(e) {}
+      if (Number.isFinite(initB)) initGb = initB / (1000 ** 3) * oMult;
+    }
+    if (u && Object.prototype.hasOwnProperty.call(u, "total_bytes")) {
+      let b = 0, offB = 0;
+      try { b = parseInt(u.total_bytes ?? 0, 10); } catch(e) {}
+      try { offB = parseInt(u._offset_bytes ?? 0, 10); } catch(e) {}
+      initGb = Math.max(0, b + offB) / (1000 ** 3) * oMult;
+    }
+    const usageGb = (name in usageMap) ? usageMap[name] : initGb;
+
+    // prepaidMap(UI 입력) 우선, 없으면 스냅샷 값
+    const personalPrepaid = (prepaidMap && name in prepaidMap)
+      ? toNumber(prepaidMap[name], 0.0)
+      : toNumber(u?.personal_prepaid, 0.0);
+
+    rawUsers.push({ name, display_name: displayName, role, usage_gb: usageGb,
+                    personal_prepaid: personalPrepaid });
+  }
+
+  if (rawUsers.length === 0) {
+    return {
+      params: { base_amount_E1: E1, target_total_F16: F16, common_prepaid_F21: F21 },
+      summary: { E1, slope: 0, usage_sum_gb: 0, sum_final: 0, check_total_collected: F21, target_total: F16 },
+      users: []
+    };
+  }
+
+  // 엔진 파라미터 읽기
+  const _ep    = ep || engineParams;
+  const mgDisc = toNumber(_ep?.manager?.discount,    30);
+  const apDisc = toNumber(_ep?.apprentice?.discount, 30);
+
+  // ── Prepaid 분류 ──
+  const prepaidUsers  = rawUsers.filter(u => (u.personal_prepaid || 0) > 0);
+  const slopeUsers    = rawUsers.filter(u => (u.personal_prepaid || 0) <= 0);
+
+  // Prepaid 사용자: fixed
+  let sumPrepaid = 0;
+  for (const u of prepaidUsers) {
+    u.base_fee     = 0;
+    u.variable_fee = 0;
+    u.discount     = 0;
+    u.final_fee    = pyRound(u.personal_prepaid, 2);
+    sumPrepaid    += u.final_fee;
+  }
+
+  // Slope 계산 대상: Prepaid 제외
+  const N_s          = slopeUsers.length;
+  const nMgr         = slopeUsers.filter(u => u.role === "manager").length;
+  const nAp          = slopeUsers.filter(u => u.role === "apprentice").length;
+  const totalUsage   = slopeUsers.reduce((s, u) => s + u.usage_gb, 0);
+
+  // adj_target: Prepaid 제외 후 slope 사용자들이 채워야 할 금액
+  const adjTarget = F16 - F21 - sumPrepaid + nMgr * mgDisc + nAp * apDisc;
+
+  // slope ($/GB)
+  const slope = (N_s > 0 && totalUsage > 0) ? (adjTarget - N_s * E1) / totalUsage : 0;
+
+  // ── 1단계: ceil 적용 + overshoot 기록 ──
+  for (const u of slopeUsers) {
+    const disc     = u.role === "manager" ? mgDisc : (u.role === "apprentice" ? apDisc : 0);
+    const varExact = slope * u.usage_gb;
+    const varCeil  = Math.ceil(varExact);
+    u.base_fee     = E1;
+    u.variable_fee = varCeil;
+    u.discount     = disc;
+    u.final_fee    = Math.max(0, E1 + varCeil - disc);
+    u._overshoot   = varCeil - varExact;  // ceil로 올라간 소수량 (0~1)
+  }
+
+  // ── 2단계: 초과분 보정 (prepaid 포함 전체 기준으로 delta 계산) ──
+  const sumSlopeCeil = slopeUsers.reduce((s, u) => s + u.final_fee, 0);
+  const delta = Math.round((sumSlopeCeil + sumPrepaid + F21) - F16);
+  if (delta > 0) {
+    // overshoot 내림차순: 가장 많이 올림된 사람부터 -$1 차감
+    const sorted = [...slopeUsers].sort((a, b) => b._overshoot - a._overshoot);
+    for (let i = 0; i < delta && i < sorted.length; i++) {
+      sorted[i].variable_fee -= 1;
+      sorted[i].final_fee = Math.max(0, sorted[i].base_fee + sorted[i].variable_fee - sorted[i].discount);
+    }
+  }
+
+  let sumSlope = 0;
+  for (const u of slopeUsers) {
+    delete u._overshoot;
+    sumSlope += u.final_fee;
+  }
+
+  const sumFinal   = pyRound(sumSlope + sumPrepaid, 2);
+  const checkTotal = pyRound(sumFinal + F21, 2);
+  const usageSumAll = rawUsers.reduce((s, u) => s + u.usage_gb, 0);
+
+  const summary = {
+    E1:                    pyRound(E1, 2),
+    slope:                 pyRound(slope, 4),
+    overhead_pct:          pyRound(oPct, 2),
+    usage_sum_gb:          pyRound(usageSumAll, 3),
+    public_usage_gb:       pyRound(publicUsageGb, 3),
+    sum_prepaid:           pyRound(sumPrepaid, 2),
+    sum_final:             pyRound(sumFinal, 2),
+    check_total_collected: checkTotal,
+    adj_delta:             delta,
+    target_total:          pyRound(F16, 2)
+  };
+
+  return {
+    period_start_utc: snap?.period_start_utc ?? null,
+    last_updated_utc: snap?.last_updated_utc ?? null,
+    params: {
+      base_amount_E1: E1,
+      target_total_F16: F16,
+      common_prepaid_F21: F21,
+      archive_kind: currentKind,
+      archive_filename: selectedFile,
+      snapshot_type: snap?.snapshot_type ?? "",
+      snapshot_timestamp: snap?.timestamp_utc ?? snap?.timestamp_local ?? ""
+    },
+    summary,
+    users: rawUsers
+  };
+}
+
+function renderResult(result) {
+  const tb = $("tblResult").querySelector("tbody");
+  tb.innerHTML = "";
+
+  const users = result?.users || [];
+  users.sort((a,b) => (a.name > b.name ? 1 : -1));
+
+  for (const u of users) {
+    const isPrepaid    = (u.personal_prepaid || 0) > 0;
+    const isManager    = u.role === "manager" && !isPrepaid;
+    const isApprentice = u.role === "apprentice" && !isPrepaid;
+    const rate         = (u.usage_gb > 0) ? ((u.final_fee || 0) / u.usage_gb).toFixed(2) : "-";
+    const tr = document.createElement("tr");
+    if (isPrepaid) {
+      tr.style.background = "rgba(251,191,36,0.12)";
+      tr.style.borderLeft = "3px solid rgba(251,191,36,0.60)";
+    } else if (isManager) {
+      tr.style.background = "rgba(154,210,255,0.08)";
+      tr.style.borderLeft = "3px solid rgba(154,210,255,0.45)";
+    } else if (isApprentice) {
+      tr.style.background = "rgba(251,191,36,0.08)";
+      tr.style.borderLeft = "3px solid rgba(251,191,36,0.40)";
+    }
+    const badge = isPrepaid
+      ? ' <span style="font-size:10px;color:#fbbf24;font-weight:900;margin-left:4px;">선불확정</span>'
+      : isManager
+        ? ' <span style="font-size:10px;color:#9ad2ff;font-weight:900;margin-left:4px;">관리자할인</span>'
+        : isApprentice
+          ? ' <span style="font-size:10px;color:#fbbf24;font-weight:900;margin-left:4px;">실습생할인</span>'
+          : '';
+    const fxRate   = fxCurrentRate();
+    const totalKrw = fxRate ? ceilTo1000(u.final_fee * fxRate) : null;
+    const krwStr   = totalKrw !== null
+      ? totalKrw.toLocaleString("ko-KR") + "원"
+      : '<span style="color:var(--muted)">-</span>';
+    const finalStyle = isPrepaid
+      ? 'color:#fbbf24;font-weight:900;'
+      : isManager ? 'color:#9ad2ff;font-weight:900;' : '';
+    const muted = '<span style="color:var(--muted)">-</span>';
+    tr.innerHTML = `
+      <td class="mono">${escapeHtml(u.name)}</td>
+      <td>${escapeHtml(u.display_name)}${badge}</td>
+      <td class="mono">${escapeHtml(u.role)}</td>
+      <td class="mono">${fmt(u.usage_gb, 3)}</td>
+      <td class="mono">${isPrepaid ? muted : fmt(u.base_fee, 0)}</td>
+      <td class="mono">${isPrepaid ? muted : fmt(u.variable_fee, 0)}</td>
+      <td class="mono" style="${finalStyle}">${fmt(u.final_fee, 0)}</td>
+      <td class="mono" style="color:#36d399;font-weight:700;">${krwStr}</td>
+      <td class="mono" style="color:var(--muted)">${rate}</td>
+    `;
+    tb.appendChild(tr);
+  }
+
+  const s = result?.summary || {};
+  const checkOk = Math.abs((s.check_total_collected || 0) - (s.target_total || 0)) < 0.5;
+  $("sumMsg").className = "msg ok";
+  $("sumMsg").innerHTML = `
+    <div style="font-weight:900; margin-bottom:6px;">Summary</div>
+    <div style="font-family:var(--mono); font-size:12px; line-height:1.7;">
+      E1 (기본요금) = <b>$${escapeHtml(String(s.E1))}</b><br/>
+      slope (기울기) = <b>${escapeHtml(String(s.slope))} $/GB</b><br/>
+      overhead_pct = <b style="color:#9ad2ff;">${escapeHtml(String(s.overhead_pct ?? 0))}%</b> 보정 적용<br/>
+      usage_sum_gb = ${escapeHtml(String(s.usage_sum_gb))} GB + Public = <b>${escapeHtml(String(s.public_usage_gb ?? 0))} GB</b> (total ${escapeHtml(String(pyRound((s.usage_sum_gb||0)+(s.public_usage_gb||0),3)))} GB)<br/>
+      ${(s.sum_prepaid||0)>0 ? `선불확정 합계 = <b style="color:#fbbf24;">$${escapeHtml(String(s.sum_prepaid))}</b><br/>` : ''}
+      sum_final = $${escapeHtml(String(s.sum_final))}<br/>
+      check_total_collected = <b style="color:${checkOk?'#36d399':'#fb7185'}">$${escapeHtml(String(s.check_total_collected))}</b>
+        (= sum_final + F21) ${checkOk ? '✅ F16과 일치' : '⚠ F16과 불일치!'}
+        ${(s.adj_delta||0)>0 ? `<span style="color:var(--muted);font-size:11px;"> · ceil 보정 ${escapeHtml(String(s.adj_delta))}명 -$1</span>` : ''}<br/>
+      target_total (F16) = $${escapeHtml(String(s.target_total))}
+    </div>
+  `;
+}
+
+function parseTimestampFromFilename(filename) {
+  // usage_total_20260228_235958.json  → 2026-02-28  23:59 UTC
+  // 20251229_153915_snapshot.json     → 2025-12-29  15:39 UTC
+  if (!filename) return "-";
+  // 패턴 1: yyyymmdd_HHMMSS (월간/스냅샷)
+  const m1 = filename.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/);
+  if (m1) return `${m1[1]}-${m1[2]}-${m1[3]}  ${m1[4]}:${m1[5]} UTC`;
+  // 패턴 2: yyyy-mm-dd (일간: usage_daily_2026-03-07.json)
+  const m2 = filename.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}  00:00 UTC`;
+  return "-";
+}
+
+function updateMeta(kind, filename, snap) {
+  $("metaKind").textContent = kind || "-";
+  $("metaFile").textContent = filename || "-";
+  $("metaTs").textContent = parseTimestampFromFilename(filename);
+  // overhead_pct 표시
+  const opEl = $("metaOverhead");
+  if (opEl) {
+    const pct = typeof snap?.overhead_pct === "number" ? snap.overhead_pct : 0;
+    opEl.textContent = pct > 0 ? `${pct.toFixed(1)}% 보정 적용` : "0% (보정 없음)";
+    opEl.style.color = pct > 0 ? "#9ad2ff" : "var(--muted)";
+  }
+}
+
+function setMsg(el, text, cls="msg") {
+  const e = $(el);
+  e.className = cls;
+  e.textContent = text;
+}
+
+function renderFileList() {
+  const q = ($("q").value || "").trim().toLowerCase();
+  const list = $("filelist");
+  list.innerHTML = "";
+
+  const filtered = files.filter(f => (f.name || "").toLowerCase().includes(q));
+  for (const f of filtered) {
+    const div = document.createElement("div");
+    div.className = "file" + ((selectedFile === f.name) ? " active" : "");
+    div.innerHTML = `
+      <div class="name">${escapeHtml(f.name)}</div>
+      <div class="meta">${escapeHtml(f.size ?? "")}</div>
+    `;
+    div.onclick = () => {
+      selectedFile = f.name;
+      $("btnLoad").disabled = false;
+      if (currentRole === "superadmin") $("btnCopyOffset").disabled = false;
+      renderFileList();
+      updateMeta(currentKind, selectedFile, snapshot);
+    };
+    list.appendChild(div);
+  }
+
+  if (filtered.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "msg";
+    empty.textContent = "표시할 파일이 없습니다.";
+    list.appendChild(empty);
+  }
+}
+
+
+
+async function loadFileList(kind) {
+  currentKind = kind;
+  selectedFile = null;
+  snapshot = null;
+  lastBillingResult = null;
+
+  $("btnLoad").disabled = true;
+  $("btnCalc").disabled = true;
+  $("btnCsv").disabled = true;
+  $("btnCopyOffset").disabled = true;
+
+  updateMeta(currentKind, "-", null);
+  setPill("목록 로딩중...", "");
+  setMsg("leftMsg", "목록을 불러오는 중...", "msg");
+  setMsg("rightMsg", "좌측에서 파일을 선택하세요.", "msg");
+  $("sumMsg").className = "msg";
+  $("sumMsg").textContent = "정산 실행 후 summary가 여기에 표시됩니다.";
+  $("tblPreview").querySelector("tbody").innerHTML = "";
+  $("tblResult").querySelector("tbody").innerHTML = "";
+
+  try {
+    const data = await fetchJSON(`/api/archives/list?kind=${encodeURIComponent(kind)}`);
+
+    const raw = Array.isArray(data?.files) ? data.files : (Array.isArray(data) ? data : []);
+    files = raw
+      .map(x => {
+        if (typeof x === "string") return { name: x };
+        if (x && typeof x === "object") return { name: String(x.name ?? x.filename ?? ""), size: x.size ?? "" };
+        return { name: String(x) };
+      })
+      .filter(f => f.name && f.name.trim().length > 0);
+
+    files.sort((a, b) => (a.name < b.name ? 1 : -1));
+    renderFileList();
+
+    if (files.length === 0) {
+      setPill("파일 없음", "");
+      setMsg("leftMsg", `kind=${kind} — 아카이브 파일이 없습니다.`, "msg");
+    } else {
+      setPill(`목록 ${files.length}개`, "ok");
+      setMsg("leftMsg", `kind=${kind} 목록 ${files.length}개 로드 완료`, "msg ok");
+    }
+  } catch (e) {
+    if (String(e.message).includes("세션 만료")) return;
+    files = [];
+    renderFileList();
+    setPill("목록 로드 실패", "bad");
+    setMsg("leftMsg", `목록 로드 실패: ${e.message}`, "msg err");
+  }
+}
+
+
+
+async function loadSnapshot() {
+  if (!selectedFile) return;
+
+  setPill("스냅샷 로딩중...", "");
+  setMsg("rightMsg", "스냅샷을 불러오는 중...", "msg");
+
+  try {
+    const data = await fetchJSON(`/api/archives/load?kind=${encodeURIComponent(currentKind)}&filename=${encodeURIComponent(selectedFile)}`);
+    snapshot = (data && data.data) ? data.data : data;
+    // 스냅샷의 overhead_pct 추출 (없으면 0)
+    snapshotOverheadPct = typeof snapshot?.overhead_pct === "number"
+      ? snapshot.overhead_pct : 0.0;
+    updateMeta(currentKind, selectedFile, snapshot);
+
+    const rows = buildPreviewRows(snapshot);
+    renderPreview(rows);
+
+    $("btnCalc").disabled = false;
+    $("btnCsv").disabled = true;
+    lastBillingResult = null;
+
+    setPill("스냅샷 로드 OK", "ok");
+    setMsg("rightMsg", `스냅샷 로드 완료: ${currentKind} / ${selectedFile}`, "msg ok");
+
+    // ── 파일명 → USD/KRW 조회날짜 자동 세팅 ──
+    autoSetFxDateFromFilename(selectedFile);
+  } catch (e) {
+    if (String(e.message).includes("세션 만료")) return;
+    setPill("스냅샷 로드 실패", "bad");
+    setMsg("rightMsg", `스냅샷 로드 실패: ${e.message}`, "msg err");
+  }
+}
+
+async function loadDefaultBillingParams() {
+  try {
+    const data = await fetchJSON("/api/settings/billing_engine_params");
+    const bi = data?.billing_inputs || {};
+    const E1  = toNumber(bi.base_amount_E1,   80);
+    const F16 = toNumber(bi.target_total_F16, 1750);
+    const F21 = toNumber(bi.common_prepaid_F21, 50);
+    $("E1").value  = E1;
+    $("F16").value = F16;
+    $("F21").value = F21;
+    $("billMsg").className = "msg ok";
+    $("billMsg").textContent = `파라미터 로드됨 — E1=$${E1} | F16=$${F16} | F21=$${F21} | 매니저할인=$${engineParams?.manager?.discount??30} | 실습생할인=$${engineParams?.apprentice?.discount??30}`;
+  } catch (e) {
+    if (String(e.message).includes("세션 만료")) return;
+    $("E1").value  = 80;
+    $("F16").value = 1750;
+    $("F21").value = 50;
+    $("billMsg").className = "msg";
+    $("billMsg").textContent = "billing_engine_params 읽기 실패 → 기본값(E1=80, F16=1750, F21=50) 사용";
+  }
+}
+
+// E1/F16/F21 → billing_engine_params.json 자동 저장 (정산 실행 시 호출)
+async function autoSaveBillingInputs(E1, F16, F21) {
+  try {
+    const data = await fetchJSON("/api/settings/billing_engine_params", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        billing_inputs: {
+          base_amount_E1: E1,
+          target_total_F16: F16,
+          common_prepaid_F21: F21
+        }
+      })
+    });
+
+    const bi = data?.params?.billing_inputs || {};
+    $("billMsg").className = "msg ok";
+    $("billMsg").textContent =
+      `✅ 정산 완료 · 저장됨 — E1=$${bi.base_amount_E1} | F16=$${bi.target_total_F16} | F21=$${bi.common_prepaid_F21}`;
+  } catch (e) {
+    setMsg("billMsg", `⚠ 정산 완료 · 저장 실패: ${e.message}`, "msg err");
+  }
+}
+
+function downloadXLSX(result) {
+  if (typeof XLSX === "undefined") {
+    alert("XLSX 라이브러리 로딩 실패. 인터넷 연결을 확인하세요.");
+    return;
+  }
+
+  const users     = [...(result?.users || [])].sort((a,b) => a.name > b.name ? 1 : -1);
+  const s         = result?.summary || {};
+  const p         = result?.params  || {};
+  const fxRate    = fxCurrentRate();
+  const fxDateStr = $("fxDateInput") ? $("fxDateInput").value : "";
+
+  const fnMatch   = (selectedFile||"").match(/(\d{4})(\d{2})\d{2}/);
+  const sheetName = fnMatch
+    ? `billing_${currentKind}_${fnMatch[1]}_${fnMatch[2]}`
+    : `billing_${currentKind}`;
+
+  const N = users.length;
+
+  // ══════════════════════════════════════
+  // 스타일 상수
+  // ══════════════════════════════════════
+  const MED = { style: "medium" };
+  function bdr(l, r, t, b) {
+    const o = {};
+    if (l) o.left   = MED;
+    if (r) o.right  = MED;
+    if (t) o.top    = MED;
+    if (b) o.bottom = MED;
+    return o;
+  }
+
+  const FONT         = { name: "Calibri", sz: 11 };
+  const FONTB        = { name: "Calibri", sz: 11, bold: true };
+  const FONT12B      = { name: "Calibri", sz: 12, bold: true };
+  const FONTB_BLUE   = { name: "Calibri", sz: 11, bold: true, color: { rgb: "0070C0" } };
+  const FONT12B_BLUE = { name: "Calibri", sz: 12, bold: true, color: { rgb: "0070C0" } };
+  const FONTB_RED    = { name: "Calibri", sz: 11, bold: true, color: { rgb: "FF0000" } };
+
+  const AL_CTR  = { horizontal: "center", vertical: "center", wrapText: true };
+  const AL_CTRV = { horizontal: "center", vertical: "center" };
+  const AL_R    = { horizontal: "right" };
+  const AL_L    = { horizontal: "left" };
+  const AL_C    = { horizontal: "center" };
+
+  // ── 워크시트 빌더 ──
+  const ws    = {};
+  const range = { s:{r:0,c:0}, e:{r:0,c:13} };  // A~N (0~13)
+
+  function sc(r, c, v, sty) {
+    const addr = XLSX.utils.encode_cell({r, c});
+    const isNum = typeof v === "number";
+    ws[addr] = {
+      v: (v === null || v === undefined) ? "" : v,
+      t: (!v && v !== 0) ? "s" : (isNum ? "n" : "s"),
+      s: sty || {}
+    };
+    if (r > range.e.r) range.e.r = r;
+    if (c > range.e.c) range.e.c = c;
+  }
+
+  // ══════════════════════════════════════
+  // ROW 0: 헤더 A~J
+  // A=left+top+bot, B~I=top+bot, J=right+top+bot
+  // H열만 sz=12
+  // ══════════════════════════════════════
+  const HDR = [
+    { v: "user",          f: FONTB   },
+    { v: "comment",       f: FONTB   },
+    { v: "role",          f: FONTB   },
+    { v: "usage_gb",      f: FONTB   },
+    { v: "prepaid",       f: FONTB   },
+    { v: "base\nfee",     f: FONTB   },
+    { v: "variable\nfee", f: FONTB   },
+    { v: "Total $",       f: FONT12B },
+    { v: "Total \uFFE6",  f: FONTB   },
+    { v: "$/G",           f: FONTB   },
+  ];
+  HDR.forEach(({ v, f }, c) => {
+    sc(0, c, v, { font: f, alignment: AL_CTR, border: bdr(c===0, c===9, true, true) });
+  });
+
+  // 환율 박스 L1(col11)=left+top+bot, M1(col12)=top+bot, N1(col13)=right+top+bot (모두 center)
+  sc(0, 11, "\uD658 \uC728",
+     { font: FONTB, alignment: AL_CTRV, border: bdr(true, false, true, true) });
+  if (fxRate) {
+    sc(0, 12, parseFloat(fxRate.toFixed(2)),
+       { font: FONT, alignment: AL_CTRV, numFmt: "0.00", border: bdr(false, false, true, true) });
+  } else {
+    sc(0, 12, "", { font: FONT, border: bdr(false, false, true, true) });
+  }
+  if (fxDateStr) {
+    const pts = fxDateStr.split("-");
+    if (pts.length === 3) {
+      const dt     = new Date(Date.UTC(+pts[0], +pts[1]-1, +pts[2]));
+      const serial = (dt - new Date(Date.UTC(1899, 11, 30))) / 86400000;
+      sc(0, 13, serial, { font: FONT, alignment: AL_CTRV, numFmt: "yyyy\\-mm\\-dd", border: bdr(false, true, true, true) });
+    } else {
+      sc(0, 13, fxDateStr, { font: FONT, alignment: AL_CTRV, border: bdr(false, true, true, true) });
+    }
+  } else {
+    sc(0, 13, "", { font: FONT, border: bdr(false, true, true, true) });
+  }
+
+  // ══════════════════════════════════════
+  // 데이터 행 (row 1 ~ N)
+  // A=left(+마지막bot), J=right(+마지막bot)
+  // 마지막행 B~I: bot
+  // H: sz=12 bold / I: 정수+통화포맷 / J: center
+  // ══════════════════════════════════════
+  users.forEach((u, i) => {
+    const r         = i + 1;
+    const isLast    = (i === N - 1);
+    const isPrepaid = (u.personal_prepaid || 0) > 0;
+    const totalKrw  = fxRate ? ceilTo1000(u.final_fee * fxRate) : null;
+    const slashG    = u.usage_gb > 0 ? parseFloat(((u.final_fee||0)/u.usage_gb).toFixed(2)) : null;
+
+    sc(r, 0, u.name,             { font: FONT, border: bdr(true, false, false, isLast) });
+    sc(r, 1, u.display_name??"", { font: FONT, border: bdr(false, false, false, isLast) });
+    sc(r, 2, u.role,             { font: FONT, border: bdr(false, false, false, isLast) });
+    sc(r, 3, parseFloat(u.usage_gb.toFixed(1)),
+             { font: FONT, alignment: AL_R, numFmt: "0.0", border: bdr(false, false, false, isLast) });
+
+    // E: prepaid (없으면 공란 — 마지막행은 bot 유지)
+    if (isPrepaid)
+      sc(r, 4, u.personal_prepaid, { font: FONT, alignment: AL_R, numFmt: "0", border: bdr(false, false, false, isLast) });
+    else
+      sc(r, 4, "", { font: FONT, border: bdr(false, false, false, isLast) });
+
+    // F base / G variable
+    if (!isPrepaid) {
+      sc(r, 5, u.base_fee,     { font: FONT, alignment: AL_R, numFmt: "0", border: bdr(false, false, false, isLast) });
+      sc(r, 6, u.variable_fee, { font: FONT, alignment: AL_R, numFmt: "0", border: bdr(false, false, false, isLast) });
+    } else {
+      sc(r, 5, "", { font: FONT, border: bdr(false, false, false, isLast) });
+      sc(r, 6, "", { font: FONT, border: bdr(false, false, false, isLast) });
+    }
+
+    // H Total $: sz=12 bold
+    sc(r, 7, u.final_fee,
+       { font: FONT12B, alignment: AL_R, numFmt: "0", border: bdr(false, false, false, isLast) });
+
+    // I Total ￦: 정수 + 엑셀 통화 포맷
+    if (totalKrw !== null) {
+      sc(r, 8, totalKrw,
+         { font: FONT, alignment: AL_R, numFmt: '#,##0\\ "\u20A9"\\ ', border: bdr(false, false, false, isLast) });
+    } else {
+      sc(r, 8, "", { font: FONT, border: bdr(false, false, false, isLast) });
+    }
+
+    // J $/G: center
+    sc(r, 9, slashG !== null ? slashG : "",
+       { font: FONT, ...(slashG !== null ? { alignment: AL_C, numFmt: "0.00" } : {}),
+         border: bdr(false, true, false, isLast) });
+  });
+
+  // ══════════════════════════════════════
+  // Total 행 (데이터+2, 테두리 없음)
+  // A: center bold / H: sz=12 bold BLUE
+  // ══════════════════════════════════════
+  const totalR = N + 2;
+  sc(totalR, 0, "Total",     { font: FONTB,        alignment: AL_C });
+  sc(totalR, 7, s.sum_final, { font: FONT12B_BLUE, alignment: AL_R, numFmt: "0" });
+
+  // ══════════════════════════════════════
+  // Summary (L~M, 2열 구조)
+  // SUMMARY: L3:M3 병합, 4면 테두리, center
+  // 각 행: L=라벨(left, 마지막=+bot), M=값(right, 마지막=+bot)
+  // check_total_collected KRW → N10 (col13), fmt="= ₩" #,##0, center
+  // ══════════════════════════════════════
+  const SR = 2;  // 0-indexed (= Excel row 3)
+
+  // SUMMARY 병합 박스: L3:M3 (col11~12), 4면 테두리
+  sc(SR, 11, "SUMMARY", { font: FONTB, alignment: AL_C, border: bdr(true, true, true, true) });
+  sc(SR, 12, "",         { font: FONT,  border: bdr(false, true, true, true) });
+  if (!ws["!merges"]) ws["!merges"] = [];
+  ws["!merges"].push({ s:{r:SR, c:11}, e:{r:SR, c:12} });
+
+  const E1val  = typeof s.E1 === "number" ? s.E1 : (p.base_amount_E1 ?? 20);
+  const F21val = p.common_prepaid_F21 ?? (typeof s.F21 === "number" ? s.F21 : 50);
+
+  const SUMROWS = [
+    { lbl: "E1",                    val: E1val,                   lf: FONT,  vf: FONT       },
+    { lbl: "F21 (common_prepaid)",  val: F21val,                  lf: FONT,  vf: FONTB_BLUE },
+    { lbl: "overhead_pct (%)",      val: s.overhead_pct ?? 0,     lf: FONT,  vf: FONT, numFmt: "0.0" },
+    { lbl: "slope",                 val: s.slope,                 lf: FONT,  vf: FONT       },
+    { lbl: "usage_sum_gb",          val: s.usage_sum_gb,          lf: FONT,  vf: FONT       },
+    { lbl: "sum_prepaid",           val: s.sum_prepaid ?? 0,      lf: FONT,  vf: FONT       },
+    { lbl: "sum_final",             val: s.sum_final,             lf: FONTB, vf: FONTB_BLUE },
+    { lbl: "check_total_collected", val: s.check_total_collected, lf: FONT,  vf: FONTB_RED  },
+    { lbl: "target_total",          val: s.target_total,          lf: FONT,  vf: FONT       },
+  ];
+
+  SUMROWS.forEach(({ lbl, val, lf, vf, numFmt }, i) => {
+    const r      = SR + 1 + i;
+    const isLast = (i === SUMROWS.length - 1);
+    const numVal = (val !== null && val !== undefined) ? parseFloat(String(val)) : null;
+
+    // L열(col11): 라벨, left + 마지막=bottom
+    sc(r, 11, lbl, { font: lf, alignment: AL_L, border: bdr(true, false, false, isLast) });
+
+    // M열(col12): 값, right + 마지막=bottom
+    sc(r, 12,
+      (numVal !== null && !isNaN(numVal)) ? numVal : "",
+      { font: vf, alignment: AL_R, ...(numFmt ? { numFmt } : {}), border: bdr(false, true, false, isLast) }
+    );
+
+    // check_total_collected 행(i=7): N열(col13)에 ₩환산값
+    if (i === 7 && fxRate && numVal) {
+      const checkKrw = Math.floor(numVal * fxRate / 10000) * 10000;
+      sc(r, 13, checkKrw,
+         { font: FONT, alignment: AL_C, numFmt: '"= \u20A9"\\ #,##0' });
+    }
+  });
+
+  // ── 워크시트 범위 ──
+  ws["!ref"] = XLSX.utils.encode_range(range);
+
+  // ── 컬럼 너비 (RE 파일 실측값) ──
+  ws["!cols"] = [
+    {wch: 10.00},   // A  user
+    {wch: 18.30},   // B  comment
+    {wch: 10.20},   // C  role
+    {wch: 10.30},   // D  usage_gb
+    {wch:  8.00},   // E  prepaid
+    {wch:  5.40},   // F  base_fee
+    {wch:  8.20},   // G  variable_fee
+    {wch:  8.00},   // H  Total $
+    {wch: 12.30},   // I  Total ￦
+    {wch:  7.20},   // J  $/G
+    {wch:  2.70},   // K  spacer
+    {wch: 19.00},   // L  summary label
+    {wch:  8.60},   // M  summary value
+    {wch: 12.70},   // N  check KRW
+  ];
+
+  // ── 행 높이 ──
+  const rowHeights = [{ hpt: 30 }];
+  for (let r = 1; r <= totalR + 2; r++) rowHeights.push({ hpt: 14.4 });
+  ws["!rows"] = rowHeights;
+
+  // ── 워크북 생성 & 다운로드 ──
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+
+  const fnBase = `billing_${currentKind}_${(selectedFile||"").replace(/[^A-Za-z0-9_.-]/g, "_")}`;
+  XLSX.writeFile(wb, `${fnBase}.xlsx`);
+}
+
+function hookEvents() {
+  $("btnManager").onclick = () => location.href = "/manager";
+  $("btnLogout").onclick = () => location.href = "/logout";
+  $("btnRefresh").onclick = () => loadFileList(currentKind);
+
+  $("btnLoad").onclick = () => loadSnapshot();
+  $("btnCopyOffset").onclick = () => copyOffsetFromSnapshot();
+  $("btnCalc").onclick = async () => {
+    if (!snapshot) return;
+
+    const E1 = toNumber($("E1").value, 0);
+    const F16 = toNumber($("F16").value, 0);
+    const F21 = toNumber($("F21").value, 0);
+    const prepaidMap = getPersonalPrepaidMap();
+
+    const result = billingEngineLikeServer(snapshot, E1, F16, F21, engineParams, prepaidMap);
+    lastBillingResult = result;
+
+    renderResult(result);
+
+    $("btnCsv").disabled = false;
+    setPill("정산 완료", "ok");
+    setMsg("billMsg", `정산 완료 (로컬 계산): E1=${E1}, F16=${F16}, F21=${F21} — 저장 중...`, "msg ok");
+
+    await autoSaveBillingInputs(E1, F16, F21);
+  };
+
+  $("btnCsv").onclick = () => {
+    if (!lastBillingResult) return;
+    downloadXLSX(lastBillingResult);
+  };
+
+  $("q").addEventListener("input", () => renderFileList());
+
+  // tabs
+  const tabs = $("tabs").querySelectorAll(".tab");
+  tabs.forEach(t => {
+    t.onclick = () => {
+      tabs.forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+      const kind = t.getAttribute("data-kind");
+      loadFileList(kind);
+    };
+  });
+
+  // 엔진 파라미터 모달
+  $("btnEngineParams").onclick = () => openEngineParamsModal();
+  $("btnCloseEngineParams").onclick = () => closeEngineParamsModal();
+  $("btnEpSave").onclick = () => saveEngineParams();
+  $("btnEpReset").onclick = () => resetEngineParamsToDefault();
+
+  // 모달 바깥 클릭 시 닫기
+  $("engineParamsBackdrop").addEventListener("click", (e) => {
+    if (e.target === $("engineParamsBackdrop")) closeEngineParamsModal();
+  });
+}
+
+// ===== Offset 복사 (SUPERADMIN 전용) =====
+async function copyOffsetFromSnapshot() {
+  if (!selectedFile) {
+    setMsg("rightMsg", "파일을 먼저 선택하세요.", "msg err");
+    return;
+  }
+  if (!confirm(`[${selectedFile}] 의 total_bytes 값을\nusage_public.json 의 _offset_bytes 에 직접 적용합니다.\n\n계속하시겠습니까?`)) return;
+
+  $("btnCopyOffset").disabled = true;
+  setMsg("rightMsg", "처리 중...", "msg");
+
+  try {
+    const data = await fetchJSON("/api/copy_offset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: currentKind, filename: selectedFile }),
+    });
+    setMsg("rightMsg", `✅ ${data.message || "완료"} (적용: ${data.applied_count ?? "-"}명)`, "msg ok");
+  } catch(e) {
+    setMsg("rightMsg", "❌ 실패: " + e.message, "msg err");
+  } finally {
+    $("btnCopyOffset").disabled = false;
+  }
+}
+
+
+async function loadEngineParams() {
+  try {
+    const data = await fetchJSON("/api/settings/billing_engine_params");
+    if (data && typeof data === "object") engineParams = data;
+  } catch(e) {
+    if (String(e.message).includes("세션 만료")) return;
+    console.warn("billing_engine_params 로드 실패 (기본값 사용):", e.message);
+  }
+}
+
+// ===== 엔진 파라미터 모달 =====
+const ENGINE_PARAMS_DEFAULT = {
+  manager:    { discount: 30 },
+  apprentice: { discount: 30 }
+};
+
+function fillEngineParamInputs(p) {
+  const mg = p?.manager    || {};
+  const ap = p?.apprentice || {};
+  $("ep_mg_discount").value = mg.discount ?? 30;
+  $("ep_ap_discount").value = ap.discount ?? 30;
+}
+
+function openEngineParamsModal() {
+  fillEngineParamInputs(engineParams);
+  setEpMsg("", "");
+  $("engineParamsBackdrop").style.display = "flex";
+}
+
+function closeEngineParamsModal() {
+  $("engineParamsBackdrop").style.display = "none";
+}
+
+function setEpMsg(text, type="") {
+  const el = $("epMsg");
+  el.textContent = text;
+  el.style.background = type === "ok"  ? "rgba(54,211,153,0.12)" :
+                        type === "err" ? "rgba(251,113,133,0.12)" : "transparent";
+  el.style.borderColor = type === "ok"  ? "rgba(54,211,153,0.4)"  :
+                         type === "err" ? "rgba(251,113,133,0.4)"  : "transparent";
+  el.style.color = type === "ok"  ? "#bff7e2" :
+                   type === "err" ? "#ffd0d8"  : "#9fb0d0";
+}
+
+function resetEngineParamsToDefault() {
+  if (!confirm("모든 파라미터를 초기 기본값으로 되돌리겠습니까?")) return;
+  fillEngineParamInputs(ENGINE_PARAMS_DEFAULT);
+  setEpMsg("입력창을 기본값으로 채웠습니다. 저장 버튼을 눌러야 실제 반영됩니다.", "");
+}
+
+async function saveEngineParams() {
+  const mgDisc = parseFloat($("ep_mg_discount").value);
+  const apDisc = parseFloat($("ep_ap_discount").value);
+
+  const errs = [];
+  if (isNaN(mgDisc) || mgDisc < 0) errs.push("매니저 할인: 0 이상의 숫자를 입력하세요 (예: 30)");
+  if (isNaN(apDisc) || apDisc < 0) errs.push("실습생 할인: 0 이상의 숫자를 입력하세요 (예: 30)");
+  if (errs.length > 0) { setEpMsg("입력 오류: " + errs.join(" / "), "err"); return; }
+
+  const payload = {
+    manager:    { discount: mgDisc },
+    apprentice: { discount: apDisc }
+  };
+
+  $("btnEpSave").disabled = true;
+  setEpMsg("저장 중...", "");
+
+  try {
+    const data = await fetchJSON("/api/settings/billing_engine_params", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    // 저장 성공 → 로컬 변수도 갱신
+    engineParams = data.params || payload;
+    setEpMsg("✅ 저장 완료! 다음 정산 실행 시 새 파라미터가 적용됩니다.", "ok");
+  } catch(e) {
+    setEpMsg("❌ 저장 실패: " + e.message, "err");
+  } finally {
+    $("btnEpSave").disabled = false;
+  }
+}
+
+// ─── 환율 헬퍼 ────────────────────────────────────────────
+// 현재 위젯에 표시 중인 환율 숫자 반환 (없으면 null)
+function fxCurrentRate() {
+  const el = $("fxRateDisplay");
+  if (!el) return null;
+  const raw = el.textContent.replace(/[^\d.]/g, "");
+  const n = parseFloat(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// roundup(x, -3) : 1000원 단위 무조건 올림
+function ceilTo1000(x) {
+  return Math.ceil(x / 1000) * 1000;
+}
+
+// ============================================================
+// 환율 위젯 (Frankfurter API - 무료, API키 불필요, CORS허용)
+// URL: https://api.frankfurter.dev/v1/{date}?base=USD&symbols=KRW
+// ============================================================
+let fxCache = {};   // { "YYYY-MM-DD": rate } 캐시
+
+// UTC 기준 오늘 날짜 반환 (YYYY-MM-DD)
+function fxToday() {
+  const d = new Date();
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function setFxStatus(msg, color="#9fb0d0") {
+  const el = $("fxStatus");
+  if (el) { el.textContent = msg; el.style.color = color; }
+}
+
+async function fetchFxRate(dateStr) {
+  // 캐시 확인
+  if (fxCache[dateStr]) return fxCache[dateStr];
+
+  setFxStatus("조회 중...", "#9ad2ff");
+  const url = `https://api.frankfurter.dev/v1/${dateStr}?base=USD&symbols=KRW`;
+
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      if (resp.status === 404) throw new Error("해당 날짜 데이터 없음 (휴장일?)");
+      throw new Error(`HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    const rate = data?.rates?.KRW;
+    if (!rate) throw new Error("KRW 데이터 없음");
+
+    // 캐시 저장
+    fxCache[dateStr] = { rate, date: data.date };
+    return fxCache[dateStr];
+  } catch(e) {
+    throw new Error(e.message);
+  }
+}
+
+function displayFxRate(rate, ecbDate, queriedDate) {
+  const display = $("fxRateDisplay");
+  const dateEl  = $("fxRateDate");
+  if (display) display.textContent = `₩ ${rate.toLocaleString("ko-KR", {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+  if (dateEl) {
+    if (ecbDate && queriedDate && ecbDate !== queriedDate) {
+      // 주말/공휴일: 조회일 ≠ 실제 ECB 기준일
+      dateEl.innerHTML =
+        `${queriedDate} 기준 (ECB)` +
+        `<br/><span style="color:#fbbf24;font-size:10px;">` +
+        `⚠ ${queriedDate}은 휴일이어서 마지막 영업일(${ecbDate}) 기준 환율 적용</span>`;
+    } else {
+      dateEl.textContent = `${queriedDate || ecbDate} 기준 (ECB 16:00 CET 공시)`;
+    }
+  }
+}
+
+async function queryFxRate(dateStr) {
+  try {
+    const { rate, date } = await fetchFxRate(dateStr);
+    displayFxRate(rate, date, dateStr);
+    const sameDay = (date === dateStr);
+    setFxStatus(
+      sameDay ? "✓ 조회 완료" : `✓ 조회 완료 (${dateStr}은 휴일)`,
+      sameDay ? "#36d399" : "#fbbf24"
+    );
+  } catch(e) {
+    const display = $("fxRateDisplay");
+    if (display) display.textContent = "조회 실패";
+    setFxStatus("⚠ " + e.message, "#fb7185");
+  }
+}
+
+// ── 파일 로드 시 FX 날짜 자동 세팅 ──
+// 파일명(usage_total_20260228_235958.json)에서 연/월 추출
+// → billing_start_day 기준 날짜를 fxDateInput에 자동 입력 후 조회
+function autoSetFxDateFromFilename(filename) {
+  if (!filename) return;
+  // 패턴: yyyymmdd_ (예: 20260228_)
+  const m = filename.match(/(\d{4})(\d{2})\d{2}[_-]/);
+  if (!m) return;
+
+  const year  = parseInt(m[1], 10);
+  const month = parseInt(m[2], 10);
+  const day   = billingStartDay || 1;
+
+  // 해당 월의 마지막 날 보정 (예: 2월에 start_day=31이면 28로)
+  const lastDay = new Date(year, month, 0).getDate();
+  const safeDay = Math.min(day, lastDay);
+
+  const dateStr = `${year}-${String(month).padStart(2,"0")}-${String(safeDay).padStart(2,"0")}`;
+
+  const dateInput = $("fxDateInput");
+  if (dateInput) dateInput.value = dateStr;
+  queryFxRate(dateStr);
+}
+
+function initFxWidget() {
+  const dateInput = $("fxDateInput");
+  const today = fxToday();
+
+  // 기본값: UTC 오늘, 최대 선택 가능 날짜도 오늘까지
+  if (dateInput) {
+    dateInput.value = today;
+    dateInput.max   = today;   // 미래 날짜 선택 방지
+
+    // ★ 달력 클릭 → 날짜 선택 완료 시 자동 조회
+    dateInput.addEventListener("change", () => {
+      const d = dateInput.value;
+      if (d) queryFxRate(d);
+    });
+  }
+
+  // 조회 버튼 (수동)
+  const qBtn = $("fxQueryBtn");
+  if (qBtn) qBtn.addEventListener("click", () => {
+    const d = $("fxDateInput").value;
+    if (!d) { setFxStatus("날짜를 선택하세요", "#fbbf24"); return; }
+    queryFxRate(d);
+  });
+
+  // 오늘 버튼
+  const tBtn = $("fxTodayBtn");
+  if (tBtn) tBtn.addEventListener("click", () => {
+    $("fxDateInput").value = today;
+    queryFxRate(today);
+  });
+
+  // 페이지 로드 시 UTC 오늘 환율 자동 조회
+  queryFxRate(today);
+}
+
+
+(async function init(){
+  // ── file:// 프로토콜 경고 ──
+  if (location.protocol === "file:") {
+    setPill("직접열기 불가", "bad");
+    setMsg("leftMsg",
+      "⚠ 파일을 직접 열면 API를 호출할 수 없습니다.\n" +
+      "브라우저에서 접속하세요 → http://192.168.88.31:5000/archive_billing", "msg err");
+    return;
+  }
+
+  // ── 이벤트 바인딩 ──
+  try { hookEvents(); }
+  catch(e) {
+    setPill("초기화 오류", "bad");
+    setMsg("leftMsg", "hookEvents 오류: " + e.message, "msg err");
+    return;
+  }
+
+  // ── billing_start_day 로드 ──
+  try {
+    const bd = await fetchJSON("/api/billing_date");
+    if (bd && typeof bd.billing_start_day === "number") {
+      billingStartDay = bd.billing_start_day;
+    }
+  } catch(e) { console.warn("[billing_date]", e.message); }
+
+  // ── 역할 확인 ──
+  try {
+    const who = await fetchJSON("/api/whoami");
+    currentRole = who.role || "admin";
+  } catch(e) {
+    if (String(e.message).includes("세션 만료")) return;
+    currentRole = "admin";
+    console.warn("[whoami]", e.message);
+  }
+  if (currentRole === "superadmin" || currentRole === "admin") $("btnEngineParams").style.display = "";
+  if (currentRole === "superadmin") $("btnCopyOffset").style.display = "";
+
+  // ── 엔진 파라미터 로드 ──
+  await loadEngineParams();
+
+  // ── 기본 정산 파라미터 ──
+  await loadDefaultBillingParams();
+
+  // ── 파일 목록 ──
+  await loadFileList("monthly");
+
+  // ── 환율 위젯 초기화 ──
+  initFxWidget();
+})();
+</script>
+</body>
+</html>

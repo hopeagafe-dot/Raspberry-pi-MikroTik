@@ -1,0 +1,2219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>MCE STARLINK PREMIUM MANAGER</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+        /* ========== 디자인 템플릿 스타일 적용 ========== */
+        :root {
+            --bg-deep: #020617;
+            --bg-card: rgba(15, 23, 42, 0.85);
+            --accent: #38bdf8;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-orange: #f97316;
+            --accent-purple: #a855f7;
+        }
+
+
+
+        /* ===== Toast ===== */
+        .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        transform: translateX(-50%) translateY(12px);
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        color: rgba(226, 232, 240, 0.98);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .18s ease, transform .18s ease;
+        z-index: 9999;
+        white-space: pre-line;   /* ✅ 줄바꿈 표시 */
+        max-width: min(560px, calc(100vw - 24px));
+        text-align: left;
+        }
+        .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+        }
+
+
+
+
+        /* 1. 기본 레이아웃 및 삐져나옴 방지 설정 */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: var(--bg-deep);
+            /* 배경 이미지: background.jpg */
+            background-image: 
+                linear-gradient(rgba(2, 6, 23, 0.8), rgba(2, 6, 23, 0.8)),
+                url('/assets/background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-main);
+            padding: 20px 16px;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .page { 
+            max-width: 800px;   /* 전체 최대폭 축소 */
+            margin: 0 auto; 
+            width: 100%; 
+        }
+
+        /* ========== 헤더 스타일 (디자인 템플릿 적용) ========== */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;  /* 오른쪽 버튼이 아래로 내려가도 왼쪽 고정 */
+            flex-wrap: wrap;          /* 좁아지면 오른쪽 버튼만 다음 줄로 */
+            margin-bottom: 20px;
+            padding: 10px 0;
+            gap: 10px;
+        }
+
+        /* 로고+텍스트를 하나의 블록으로 — 절대 분리 안 됨 */
+        .header-left {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: nowrap;    /* ★ 이 블록 안에서는 절대 줄바꿈 없음 */
+            flex-shrink: 0;       /* 전체 블록이 줄어들지 않음 */
+        }
+
+        .logo-img {
+            width: 80px;          /* 고정 크기 */
+            height: auto;
+            flex-shrink: 0;       /* 절대 줄어들지 않음 */
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9))
+                    drop-shadow(0 0 10px rgba(255, 255, 255, 0.5))
+                    drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+            transition: filter 0.3s ease;
+        }
+
+        .logo-img:hover {
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.9));
+        }
+
+        .title-main {
+            font-size: clamp(1rem, 4vw, 2rem); /* 폭에 따라 서서히 줄어듦, 최소 1rem */
+            font-weight: 700;
+            white-space: nowrap;  /* 텍스트 줄바꿈 방지 */
+            background: linear-gradient(to bottom, #ffffff 30%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+
+        .title-sub {
+            font-size: clamp(0.55rem, 1.8vw, 0.75rem); /* 폭에 따라 서서히 줄어듦 */
+            color: var(--text-dim);
+            margin-top: 3px;
+            white-space: nowrap;  /* 줄바꿈 방지 */
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge-session {
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+        }
+
+        .badge-session span {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .btn-logout {
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            font-size: 0.75rem;
+            cursor: pointer;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        /* ========== 카드 그리드 (디자인 템플릿 적용) ========== */
+        .card-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            flex: 1 1 300px;
+            min-width: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-main {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .card-subtext {
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .card-subtext span {
+            color: var(--accent);
+        }
+
+        .card-link {
+            margin-top: 12px;
+            font-size: 0.75rem;
+        }
+
+        .card-link a {
+            color: var(--accent);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .card-link a:hover {
+            color: var(--text-main);
+        }
+
+        /* ========== 섹션 타이틀 ========== */
+        .section-title {
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-sub {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .section-sub span {
+            color: var(--accent);
+        }
+
+        /* ========== 툴바 ========== */
+        .top-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.75rem;
+        }
+
+        .top-toolbar-left span {
+            color: var(--text-dim);
+        }
+
+        .top-toolbar-left code {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: 0.7rem;
+        }
+
+        .top-toolbar-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* ========== 버튼 스타일 (디자인 템플릿 적용) ========== */
+        .btn-small {
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 0.75rem;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            color: var(--text-main);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-small.danger {
+            border-color: rgba(248,113,113,0.4);
+            color: #fecaca;
+        }
+
+        .btn-small.danger:hover {
+            border-color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-small.primary {
+            border-color: rgba(56, 189, 248, 0.4);
+            color: var(--accent);
+        }
+
+        .btn-small.primary:hover {
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .btn-small:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .btn-main {
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-size: 0.85rem;
+            border: 1px solid var(--accent);
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.05));
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-main:hover {
+            background: rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+
+        .btn-main.danger {
+            border-color: var(--accent-red);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.05));
+        }
+
+        .btn-main.danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-main:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        /* ========== 테이블 스타일 (디자인 템플릿 적용) ========== */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            border: 1px solid var(--border);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            padding: 10px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            table-layout: fixed;
+        }
+
+        /* ── SUPERADMIN 모드 컬럼 (체크박스 + 입력칸 있음) ── */
+        table.superadmin-mode .col-check   { width: 16px !important; padding: 0 2px 0 4px !important; }
+        table.superadmin-mode .col-user    { width: 10%; min-width: 55px; }
+        table.superadmin-mode .col-comment { width: 15%; min-width: 65px; }
+        table.superadmin-mode .col-limit   { width: 7%;  min-width: 45px; white-space: nowrap; }
+        table.superadmin-mode .col-usage   { width: 44%; min-width: 240px; }
+        table.superadmin-mode .col-rate    { width: 8%;  min-width: 50px; }
+
+        /* ── ADMIN 모드 컬럼 (체크박스 없음, 텍스트만) ── */
+        table.admin-mode .col-check   { display: none; }
+        table.admin-mode .col-user    { width: 16%; min-width: 70px; }
+        table.admin-mode .col-comment { width: 24%; min-width: 80px; }
+        table.admin-mode .col-limit   { width: 13%; min-width: 60px; }
+        table.admin-mode .col-usage   { width: 16%; min-width: 80px; }
+        table.admin-mode .col-rate    { width: 10%; min-width: 50px; }
+
+        /* RATE 컬럼 오른쪽 여백 */
+        th.col-rate, td.col-rate { padding-right: 20px !important; text-align: right; }
+
+        .rate-cell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            width: 100%;
+            min-width: 70px;
+        }
+        /* 전체 그라데이션 바 (항상 full-width 고정, clip으로 진행률 표현) */
+        .rate-bar-track {
+            position: absolute;
+            left: 0; top: 50%;
+            transform: translateY(-50%);
+            height: 14px;
+            border-radius: 4px;
+            /* 100% 구간 고정 그라데이션 — 이미지와 동일: 녹→황→주→적 */
+            background: linear-gradient(
+                to right,
+                #22c55e 0%,
+                #84cc16 20%,
+                #eab308 45%,
+                #f97316 70%,
+                #ef4444 100%
+            );
+            overflow: hidden;
+            /* 진행률만큼만 보이도록 clip */
+            clip-path: inset(0 var(--clip-right, 100%) 0 0 round 4px);
+            transition: clip-path 0.3s ease;
+            opacity: 0.82;
+        }
+        .rate-text {
+            position: relative;
+            z-index: 2;
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        }
+
+        /* comment 셀 말줄임 처리 */
+        td.col-comment {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 0;
+        }
+        td.col-comment .tag {
+            display: inline-block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        thead tr {
+            color: var(--text-dim);
+        }
+
+        thead th {
+            text-align: left;
+            font-weight: 400;
+            padding: 10px 10px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.7rem;
+        }
+
+        tbody td {
+            padding: 5px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .cell-checkbox {
+            width: 22px;
+            padding-left: 6px !important;
+            padding-right: 2px !important;
+        }
+        
+        /* SUPER ADMIN이 아니면 체크박스(선택) 컬럼 숨김 */
+        table.hide-select-col .cell-checkbox {
+            display: none;
+        }
+
+        .cell-user {
+            color: #fb923c;
+            font-weight: 600;
+        }
+
+        /* ========== 태그/뱃지 스타일 ========== */
+        .tag {
+            padding: 3px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .tag-role.crew {
+            border-color: rgba(148,163,184,0.6);
+        }
+
+        .tag-role.public {
+            border-color: rgba(248,113,113,0.7);
+            color: #fecaca;
+        }
+
+        .tag-role.apprentice {
+            border-color: rgba(180,83,9,0.7);
+            color: #fed7aa;
+        }
+
+        .tag-role.manager {
+            border-color: rgba(56,189,248,0.7);
+            color: #bae6fd;
+        }
+
+        .pill-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: 0.7rem;
+        }
+
+        .pill-badge span {
+            color: var(--accent);
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .pill-helper {
+            font-size: 0.7rem;
+            margin-top: 4px;
+            color: var(--text-dim);
+        }
+
+        .pill-helper span {
+            color: var(--accent);
+        }
+
+        /* ========== 입력 필드 스타일 ========== */
+        .input-small {
+            padding: 4px 8px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.4);
+            color: var(--text-main);
+            font-size: 0.75rem;
+        }
+
+        .input-usage {
+            text-align: right;
+        }
+
+        .input-small:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* ========== 푸터 바 ========== */
+        .footer-bar {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .footer-links button {
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            margin-right: 6px;
+            cursor: pointer;
+        }
+
+        /* ========== 모달 스타일 (디자인 템플릿 적용) ========== */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            border: 1px solid var(--border);
+            padding: 24px;
+            width: 420px;
+            max-width: 95%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        .modal-body {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .modal-row {
+            margin-top: 10px;
+            margin-bottom: 12px;
+        }
+
+        .modal-row label {
+            display: block;
+            font-size: 0.8rem;
+            margin-bottom: 6px;
+            color: var(--text-dim);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.4);
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn-modal {
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-modal.primary {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-modal.primary:hover {
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .btn-modal.cancel:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        /* ========== 요금 정산 결과 카드 ========== */
+        .billing-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 28px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            font-size: 0.85rem;
+        }
+
+        .billing-result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        .billing-summary-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 8px;
+        }
+
+        .billing-summary-row span.label {
+            color: var(--text-dim);
+        }
+
+        .billing-summary-row span.value {
+            color: var(--accent);
+            margin-left: 6px;
+            font-weight: 600;
+        }
+
+        .billing-summary-row span.value.warn {
+            color: var(--accent-orange);
+        }
+
+        .billing-users-table {
+            margin-top: 12px;
+            max-height: none !important;
+            overflow-y: visible !important;
+        }
+
+        .billing-users-table table thead th {
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+        }
+
+        .hint {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-left: 8px;
+        }
+
+        .hint span {
+            color: var(--accent-orange);
+        }
+
+        /* ========== 반응형 디자인 ========== */
+        /* === 반응형 미디어 쿼리 (usage_graph.html 수준) === */
+        
+        /* 태블릿 (769px ~ 1024px) */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .card {
+                padding: 24px;
+            }
+            
+            .card-row {
+                gap: 20px;
+            }
+            
+            table {
+                font-size: 13px;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+        
+        /* 모바일 (< 768px) */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .header-row {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .header-left {
+                flex-direction: row;   /* ★ 절대 column으로 바꾸지 않음 */
+                flex-wrap: nowrap;     /* ★ 로고+텍스트 한 줄 고정 */
+                align-items: center;
+                gap: 10px;
+            }
+
+            .logo-img {
+                width: 80px;           /* ★ 크기 고정, 줄어들지 않음 */
+                flex-shrink: 0;
+            }
+
+            .title-main {
+                font-size: clamp(1rem, 4vw, 2rem); /* 폭에 따라 줄어듦 */
+            }
+
+            .card-row {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .card {
+                flex: 1 1 100%;
+                padding: 20px;
+            }
+            
+            table {
+                font-size: 13px;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
+        }
+        
+        /* 작은 모바일 (< 480px) */
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+            
+            .card {
+                padding: 16px;
+            }
+            
+            .title-main {
+                font-size: 1.3rem;
+            }
+            
+            .subtitle {
+                font-size: 0.85rem;
+            }
+            
+            table {
+                font-size: 11px;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+            }
+            
+            .btn, button {
+                font-size: 0.85rem;
+                padding: 8px 14px;
+            }
+            
+            .card-row {
+                gap: 12px;
+            }
+        }
+        
+        /* 가로모드 (작은 화면) */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .container {
+                padding: 12px 16px;
+            }
+            
+            .card {
+                padding: 16px 20px;
+            }
+            
+            .header-row {
+                margin-bottom: 12px;
+            }
+            
+            .card-row {
+                gap: 16px;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 6px 8px;
+            }
+        }
+        
+        /* 가로모드 + 큰 화면 최적화 */
+        @media (orientation: landscape) and (min-width: 768px) {
+            .card-row { 
+                gap: 25px; 
+            }
+            
+            .card { 
+                padding: 28px; 
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <!-- ========== 헤더 (디자인 템플릿 스타일 적용) ========== -->
+    <div class="header-row">
+        <div class="header-left">
+            <a href="https://www.youtube.com/@marinechiefengineer4293" target="_blank">
+                <img src="/assets/MCE_logo.png" alt="Logo" class="logo-img">
+            </a>
+            <div>
+                <div class="title-main">MCE STARLINK</div>
+                <div class="title-sub">선원별 월간 사용량 및 요금 분배를 모니터링하는 관리자 화면</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <span class="badge-session">
+                {% if role == 'superadmin' %}
+                    <span>SUPER ADMIN</span> 세션
+                {% else %}
+                    <span>ADMIN</span> 세션
+                {% endif %}
+            </span>
+            <button class="btn-logout" onclick="window.location.href='/logout'">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- 카드 제거됨 - Reset 예정일은 System Control 내부로 이동, 업데이트 시각은 footer로 이동 -->
+    <!-- card-last-updated 는 숨겨진 span으로 유지 (JS 참조용) -->
+    <span id="card-last-updated" style="display:none;">{{ last_updated_utc }}</span>
+
+    <!-- ========== System Control 카드 ========== -->
+    <div class="card">
+        <div class="section-title">⚙️ System Control</div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px; align-items: flex-start;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <button class="btn-main" onclick="openPeriodModal()">📅 Reset 예정일</button>
+                <div style="font-size:0.7rem;color:var(--text-dim);text-align:center;" id="card-period-start">{{ period_start_utc }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <button class="btn-main" onclick="openOverheadModal()">📡 오버헤드 보정</button>
+                <div style="font-size:0.7rem;color:var(--text-dim);text-align:center;" id="card-overhead-pct">– %</div>
+            </div>
+            <button class="btn-main" onclick="saveSnapshot()">💾 사용량 수동저장</button>
+            <button class="btn-main" onclick="openArchiveBilling()">📊 DATA로딩 &amp; 정산</button>
+            <button class="btn-main danger" onclick="openResetModal()">
+                🔄 Reset Usage (to 0)
+            </button>
+        </div>
+    </div>
+
+    <!-- ========== 사용자 리스트 섹션 ========== -->
+    <div class="section-title">👥 사용자 리스트</div>
+
+    <!-- ========== 사용량 합계 + 저장 버튼 툴바 ========== -->
+    <div class="top-toolbar" style="margin-bottom:10px;">
+        <div class="top-toolbar-left">
+            <span id="usage-sum-text" style="font-size:0.9rem;">사용자 실제 사용량 합계: <strong style="font-size:1.05rem;">0.0 GB</strong></span>
+        </div>
+        <div class="top-toolbar-right">
+            <button class="btn-small" onclick="openAllUserGraph()" id="btnGraph">📈 Graph</button>
+            <button class="btn-small primary" onclick="saveUserSettings()" id="btnSaveSettings" style="display:none;">💾 사용량저장</button>
+        </div>
+    </div>
+
+    <!-- ========== 사용자 테이블 ========== -->
+    <div class="table-container">
+        <table id="user-table">
+            <thead>
+            <tr>
+                <th class="cell-checkbox col-check"><input type="checkbox" id="chk-all" onclick="toggleAll(this)"></th>
+                <th class="col-user">USER Name</th>
+                <th class="col-comment">Comment</th>
+                <th class="col-limit">LIMIT (GB)</th>
+                <th class="col-usage" style="text-align:right;">Total Usage</th>
+                <th class="col-rate" style="text-align:right;">Rate</th>
+            </tr>
+            </thead>
+            <tbody id="user-tbody">
+            <!-- JS 로 채움 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ========== 푸터 ========== -->
+    <div class="footer-bar">
+        <div class="footer-links">
+            <span id="footer-last-updated" style="
+                font-size:0.72rem;
+                color:var(--text-dim);
+                padding: 6px 12px;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 999px;
+                backdrop-filter: blur(10px);
+                display:inline-block;
+            ">{{ last_updated_utc }} (UTC)</span>
+        </div>
+    </div>
+
+    <!-- ========== 요금 정산 결과 ========== -->
+    <div id="billing-result" class="billing-result" style="display:none;">
+        <div class="billing-result-title">💰 요금 정산 결과</div>
+        <div class="billing-summary-row">
+            <div><span class="label">기준 금액 E1:</span><span class="value" id="br-E1"></span></div>
+            <div><span class="label">총 징수 목표 (F16):</span><span class="value" id="br-target"></span></div>
+            <div><span class="label">공용 선납 (F21):</span><span class="value" id="br-common"></span></div>
+        </div>
+        <div class="billing-summary-row">
+            <div><span class="label">실제 징수 합계:</span><span class="value" id="br-collected"></span></div>
+            <div><span class="label">목표 대비 차이:</span><span class="value" id="br-diff"></span></div>
+        </div>
+        <div class="billing-users-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>USER</th>
+                    <th>역할</th>
+                    <th>사용량 (GB)</th>
+                    <th>기본요금</th>
+                    <th>가변요금</th>
+                    <th>최종요금</th>
+                </tr>
+                </thead>
+                <tbody id="billing-users-tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========== Reset 선택 모달 ========== -->
+<div class="modal-backdrop" id="reset-modal">
+  <div class="modal">
+    <div class="modal-title">🔄 Reset 기능 선택</div>
+    <div class="modal-body">
+      아래 기능은 <span style="color:var(--accent-orange);">되돌릴 수 없습니다.</span><br/>
+      목적에 맞게 1개를 선택하세요.
+      <div style="margin-top:12px; line-height:1.8;">
+        • <b>RouterOS Reset</b>: 모든 active 로그아웃 + hotspot user counters reset + IoT host 제거<br/>
+        • <b>Pi Reset</b>: usage_public.json의 total_bytes/_last_raw_bytes/_offset_bytes = 0
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button class="btn-modal primary" onclick="runResetAction('both')">
+        1️⃣ RouterOS + Pi(usage_public.json) 모두 Reset
+      </button>
+
+      <div style="border-top:1px solid var(--border); margin:8px 0;"></div>
+
+      <button class="btn-modal" onclick="runResetAction('router')">
+        2️⃣-1 RouterOS만 Reset (Pi 값 유지)
+      </button>
+
+      <button class="btn-modal" onclick="runResetAction('pi')">
+        2️⃣-2 Pi(usage_public.json)만 Reset (RouterOS 유지)
+      </button>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-modal cancel" onclick="closeResetModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 집계 기간 시작 변경 모달 ========== -->
+<div class="modal-backdrop" id="period-modal">
+    <div class="modal">
+        <div class="modal-title">📅 집계 기준일 변경</div>
+        <div class="modal-body">
+            매월 반복되는 <strong style="color:var(--text-main);">기준 시작일</strong>을 입력하세요.<br/>
+            입력한 일(day) 기준으로 매월 자동으로 저장 및 Reset됩니다 (특별한 경우가 아니면 변경금지).<br/>
+            <span style="color:var(--accent);">billing_date.json</span>에 저장됩니다.
+        </div>
+        <div class="modal-row">
+            <label for="period-input">기준일 (1 ~ 31)</label>
+            <input id="period-input" class="modal-input" type="number"
+                   min="1" max="31" step="1" placeholder="예: 24" />
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal cancel" onclick="closePeriodModal()">취소</button>
+            <button class="btn-modal primary" onclick="savePeriodStart()">저장</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== 오버헤드 보정% 변경 모달 ========== -->
+<div class="modal-backdrop" id="overhead-modal">
+    <div class="modal">
+        <div class="modal-title">📡 오버헤드 보정% 설정</div>
+        <div class="modal-body">
+            MikroTik Hotspot이 측정하지 못하는 <strong style="color:var(--text-main);">패킷 헤더 + 위성 캡슐화 오버헤드</strong>를
+            표시 시 보정합니다.<br/><br/>
+            스타링크 청구서와 비교해 실측값을 입력하세요.<br/>
+            <span style="color:var(--accent-orange);">⚠ 이 값은 과거 아카이브를 소급 변경하지 않습니다.</span><br/>
+            변경 시점 이후 저장되는 daily archive에만 새 값이 적용됩니다.<br/>
+            <span style="color:var(--text-dim);font-size:0.8rem;">billing_date.json에 저장됩니다. 범위: 0.0 ~ 20.0%</span>
+        </div>
+        <div class="modal-row">
+            <label for="overhead-input">오버헤드 보정% (0.0 ~ 20.0)</label>
+            <input id="overhead-input" class="modal-input" type="number"
+                   min="0" max="20" step="0.1" placeholder="예: 4.1" />
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal cancel" id="overhead-btn-cancel" onclick="closeOverheadModal()">취소</button>
+            <button class="btn-modal primary" id="overhead-btn-save" onclick="saveOverheadPct()">저장</button>
+        </div>
+        <!-- 저장 중 표시 영역 -->
+        <div id="overhead-saving-msg" style="
+            display:none;
+            margin-top:14px;
+            padding:12px 14px;
+            border-radius:12px;
+            background:rgba(56,189,248,0.10);
+            border:1px solid rgba(56,189,248,0.30);
+            font-size:0.82rem;
+            color:#bae6fd;
+            text-align:center;
+            line-height:1.7;
+        ">
+            ⏳ RouterOS에 Limit를 적용하는 중입니다…<br/>
+            <span style="font-size:0.75rem;color:var(--text-dim);">완료 메시지가 뜰 때까지 창을 닫거나 다른 버튼을 누르지 마세요.</span>
+        </div>
+    </div>
+</div>
+
+<!-- ========== Limit 변경 모달 ========== -->
+<div class="modal-backdrop" id="limit-modal">
+    <div class="modal">
+        <div class="modal-title">✏️ Limit 변경</div>
+        <div class="modal-body">
+            사용자 <strong style="color:var(--accent);" id="limit-modal-username"></strong>의
+            월간 데이터 한도를 변경합니다.<br/>
+            <span style="color:var(--text-dim);font-size:0.82rem;">
+                입력값은 화면 표시 기준(GB)이며, RouterOS에는 보정%를 역산하여 자동 적용됩니다.
+            </span>
+        </div>
+        <div class="modal-row">
+            <label for="limit-modal-input">새 Limit (GB)</label>
+            <input id="limit-modal-input" class="modal-input" type="number"
+                   min="1" max="10000" step="1" placeholder="예: 150" />
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal cancel" onclick="closeLimitModal()">취소</button>
+            <button class="btn-modal primary" onclick="saveLimitModal()">저장</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+
+<!-- ========== JavaScript (원본 기능 100% 유지) ========== -->
+<script>
+    let gUsers = [];
+    let gOverheadPct = 0.0;  // billing_date.json의 overhead_display_pct (표시 전용 보정)
+    const ROLE_LABEL = {
+        "crew": "Crew",
+        "manager": "Manager",
+        "public": "Public",
+        "apprentice": "Apprentice"
+    };
+    const CURRENT_ROLE = "{{ role }}";
+
+    function applyRoleUI() {
+        const t = document.getElementById("user-table");
+        if (!t) return;
+
+        if (CURRENT_ROLE === "superadmin") {
+            t.classList.remove("hide-select-col", "admin-mode");
+            t.classList.add("superadmin-mode");
+            const btn = document.getElementById("btnSaveSettings");
+            if (btn) btn.style.display = "";
+        } else {
+            t.classList.remove("superadmin-mode");
+            t.classList.add("hide-select-col", "admin-mode");
+        }
+    }
+
+    // ===========================
+    // Auto refresh (5~10초)
+    // ===========================
+    const AUTO_REFRESH_MS = 4000;  // 4초
+    let __uiDirty = false;
+
+    // 사용자가 입력을 건드리면 dirty로 표시 (자동 새로고침이 덮어쓰는 사고 방지)
+    function markDirty() {
+        __uiDirty = true;
+    }
+    function clearDirty() {
+        __uiDirty = false;
+    }
+
+
+let __toastTimer = null;
+
+function showToast(message, ms = 3500) {
+  const el = document.getElementById("toast");
+  if (!el) {
+    alert(message);
+    return;
+  }
+  el.textContent = message;
+  el.classList.add("show");
+
+  if (__toastTimer) clearTimeout(__toastTimer);
+  __toastTimer = setTimeout(() => el.classList.remove("show"), ms);
+}
+
+
+    function toggleAll(master) {
+        const checked = !!master.checked;
+        document.querySelectorAll(".row-check").forEach(cb => {
+            cb.checked = checked;
+        });
+        markDirty(); // 선택상태도 "편집중"으로 간주해서 자동갱신 방지
+    }
+
+    // 모달 열려있거나 입력 중이면 자동 갱신 스킵
+    function isUiBusy() {
+        const el = document.activeElement;
+        if (el && ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName)) return true;
+
+        const billingModal = document.getElementById("billing-modal");
+        if (billingModal && billingModal.style.display === "flex") return true;
+
+        const periodModal = document.getElementById("period-modal");
+        if (periodModal && periodModal.style.display === "flex") return true;
+
+        const overheadModal = document.getElementById("overhead-modal");
+        if (overheadModal && overheadModal.style.display === "flex") return true;
+
+        const limitModal = document.getElementById("limit-modal");
+        if (limitModal && limitModal.style.display === "flex") return true;
+
+        return false;
+    }
+
+    function startAutoRefreshUsers() {
+        setInterval(async () => {
+            try {
+                // 사용자가 편집 중이면 덮어쓰기 방지
+                if (__uiDirty) return;
+                if (isUiBusy()) return;
+
+                // ✅ 화면 갱신
+                await loadUsers();
+            } catch (e) {
+                console.warn("Auto refresh failed:", e);
+            }
+        }, AUTO_REFRESH_MS);
+    }
+
+    // ===== bytes <-> 단위 변환 유틸 =====
+    function unitToMultiplier(unit) {
+        switch (unit) {
+            case "GB": return 1000 * 1000 * 1000;
+            case "MB": return 1000 * 1000;
+            case "KB": return 1000;
+            case "B":
+            default:   return 1;
+        }
+    }
+
+    function chooseUnitForInput(bytes) {
+        let unit = "B";
+        let value = bytes;
+        let decimals = 1;  // 모든 단위 소수점 1자리 통일
+
+        if (bytes >= 1000 * 1000 * 1000) {
+            unit = "GB";
+            value = bytes / (1000 * 1000 * 1000);
+            decimals = 1;
+        } else if (bytes >= 1000 * 1000) {
+            unit = "MB";
+            value = bytes / (1000 * 1000);
+            decimals = 1;
+        } else if (bytes >= 1000) {
+            unit = "KB";
+            value = bytes / 1000;
+            decimals = 1;
+        } else {
+            unit = "B";
+            value = bytes;
+            decimals = 0;  // B 단위는 정수
+        }
+        return { value, unit, decimals };
+    }
+
+    function formatBytesShort(bytes) {
+        if (!bytes || bytes <= 0) return "0 B";
+        const units = ["B", "KB", "MB", "GB", "TB"];
+        let u = 0;
+        let v = bytes;
+        while (v >= 1000 && u < units.length - 1) {
+            v /= 1000;
+            u++;
+        }
+        return v.toFixed(u === 0 ? 0 : 2) + " " + units[u];
+    }
+
+    // ===== _offset_bytes helpers (raw + offset = effective) =====
+    function asIntOr0(v) {
+        const n = parseInt(v ?? 0, 10);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function getRawUsageBytes(u) {
+        if (u && typeof u.usage_bytes === "number" && Number.isFinite(u.usage_bytes)) return u.usage_bytes;
+        const gb = parseFloat(u?.usage_gb || "0");
+        return Number.isFinite(gb) ? Math.round(gb * 1000 * 1000 * 1000) : 0;
+    }
+
+    function getOffsetBytes(u) {
+        return asIntOr0(u?._offset_bytes ?? 0);
+    }
+
+    function getEffectiveUsageBytes(u) {
+        // ✅ 안전장치: 0 미만 방지
+        return Math.max(0, getRawUsageBytes(u) + getOffsetBytes(u));
+    }
+
+    function formatSignedBytes(bytes) {
+        const b = asIntOr0(bytes);
+        if (b === 0) return "0 B";
+        const sign = b > 0 ? "+" : "-";
+        return sign + formatBytesShort(Math.abs(b));
+    }
+
+    function getUsageBytesFromInputs(userId) {
+        const vEl = document.getElementById(`usage-value-${userId}`);
+        const uEl = document.getElementById(`usage-unit-${userId}`);
+        if (!vEl || !uEl) return 0;
+        const v = parseFloat(vEl.value || "0");
+        const unit = uEl.value || "B";
+        if (isNaN(v) || v < 0) return 0;
+        return Math.round(v * unitToMultiplier(unit));
+    }
+
+    function updateUsageHelper(userId) {
+        const helper = document.getElementById(`usage-helper-${userId}`);
+        if (!helper) return;
+        const bytes = getUsageBytesFromInputs(userId);
+        helper.textContent = `${formatBytesShort(bytes)} (${bytes.toLocaleString()} B)`;
+    }
+
+    function handleUsageChange(userId) {
+        updateUsageHelper(userId);
+        recalcUsageSummary();
+        markDirty();
+    }
+
+    // ===== 역할 pill 업데이트 =====
+    function updateRolePill(el, role) {
+        el.classList.remove("crew", "manager", "public", "apprentice");
+        el.classList.add(role);
+        el.textContent = ROLE_LABEL[role] || "Crew";
+    }
+
+    function buildRateCell(pct) {
+        // 바의 너비는 셀 전체(100%) 고정, clip-path로 진행률만큼만 노출
+        // 100% 초과 시 전체 노출 + 테두리 강조
+        const p        = Math.min(Math.max(pct, 0), 100);
+        const clipRight = (100 - p).toFixed(2) + '%';  // 오른쪽 잘릴 %
+        const isOver    = pct > 100;
+        const trackExtra = isOver
+            ? 'box-shadow:0 0 0 1px rgba(239,68,68,0.7);opacity:1;'
+            : '';
+        const textColor  = isOver   ? '#fca5a5'
+                         : pct > 80 ? '#fdba74'
+                         : '#f8fafc';
+        return `<div class="rate-cell">
+            <div class="rate-bar-track"
+                 style="--clip-right:${clipRight};width:100%;${trackExtra}"></div>
+            <span class="rate-text" style="color:${textColor};">${pct.toFixed(1)}%</span>
+        </div>`;
+    }
+
+    function buildRow(u) {
+        const tr = document.createElement("tr");
+        tr.id = `row-${u.user}`;
+
+        const rawBytes = getRawUsageBytes(u);
+        const offsetBytes = getOffsetBytes(u);
+        const effectiveBytes = Math.max(0, rawBytes + offsetBytes);
+        // 표시 전용: overhead 보정 적용 (SuperAdmin 입력 모드에서는 원본 유지)
+        const bytes = CURRENT_ROLE === "superadmin"
+            ? effectiveBytes
+            : Math.round(effectiveBytes * (1 + gOverheadPct / 100));
+
+        const info = chooseUnitForInput(bytes);
+        const progressGB = (bytes / (1000 * 1000 * 1000));
+
+        // limit_gb_original = 화면에 표시되는 한도 (overhead 보정의 기준, 항상 동일)
+        const limitOrig = parseFloat(u.limit_gb_original || u.limit_gb || 100);
+        const progress = limitOrig > 0 ? (progressGB / limitOrig * 100) : 0;
+
+        let totalUsageCellContent;
+        const isSuperAdmin = CURRENT_ROLE === "superadmin";
+
+        if (isSuperAdmin) {
+            // Superadmin: 입력 + 단위 + raw/offset 별도 줄
+            totalUsageCellContent = `
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:nowrap;">
+                    <input type="number" class="input-small input-usage" id="usage-value-${u.user}"
+                           style="width:100px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;"
+                           value="${info.value.toFixed(info.decimals)}" step="0.1" min="0"
+                           oninput="handleUsageChange('${u.user}')">
+                    <select id="usage-unit-${u.user}" class="input-small" style="width:56px;"
+                            onchange="handleUsageChange('${u.user}')">
+                        <option value="B"  ${info.unit === "B"  ? "selected" : ""}>B</option>
+                        <option value="KB" ${info.unit === "KB" ? "selected" : ""}>KB</option>
+                        <option value="MB" ${info.unit === "MB" ? "selected" : ""}>MB</option>
+                        <option value="GB" ${info.unit === "GB" ? "selected" : ""}>GB</option>
+                    </select>
+                </div>
+                <div style="text-align:right;font-size:0.58rem;color:var(--text-dim);opacity:.75;white-space:nowrap;margin-top:2px;">
+                    raw:${formatBytesShort(rawBytes)} &nbsp;|&nbsp; off:${formatSignedBytes(offsetBytes)}
+                </div>
+                <div class="pill-helper" id="usage-helper-${u.user}" style="text-align:right;"></div>
+            `;
+        } else {
+            // 일반 Admin: 읽기 전용 텍스트만 표시 및 하단 상세 제거
+            totalUsageCellContent = `
+                <div style="
+                    display:flex;
+                    align-items:center;
+                    justify-content:flex-end;
+                    font-size:0.75rem;
+                    font-weight:600;
+                    font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;
+                    color:var(--text-main);
+                    padding:2px 0;
+                    height: 24px;
+                    cursor: default;
+                ">
+                    ${info.value.toFixed(info.decimals)} ${info.unit}
+                </div>
+            `;
+        }
+
+        // LIMIT 셀: 클릭하면 팝업 오픈
+        const limitCellContent = `
+            <div style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
+                 onclick="openLimitModal('${u.user}', ${limitOrig})"
+                 title="클릭하여 Limit 변경">
+                <span id="limit-display-${u.user}"
+                      style="font-size:0.75rem;color:var(--text-dim);text-decoration:underline dotted;text-underline-offset:3px;">
+                    ${limitOrig.toFixed(1)}
+                </span>
+                <span style="font-size:0.65rem;color:var(--text-dim);">GB</span>
+            </div>
+        `;
+
+        tr.innerHTML = `
+            <td class="cell-checkbox">
+                <input type="checkbox" class="row-check" id="chk-${u.user}" onchange="markDirty()">
+            </td>
+            <td class="cell-user">${u.user}</td>
+            <td class="col-comment">
+                <span class="tag tag-role ${u.role}" id="role-pill-${u.user}">${u.comment || '-'}</span>
+                <input type="hidden" id="role-input-${u.user}" value="${u.role}">
+            </td>
+            <td>${limitCellContent}</td>
+            <td class="text-right">
+                ${totalUsageCellContent}
+            </td>
+            <td class="col-rate">
+                ${buildRateCell(progress)}
+            </td>
+        `;
+
+        // ★ ADMIN 은 usage 입력을 수정할 수 없도록 비활성화
+        if (CURRENT_ROLE !== "superadmin") {
+            const vEl = tr.querySelector(`#usage-value-${u.user}`);
+            const uEl = tr.querySelector(`#usage-unit-${u.user}`);
+            if (vEl) vEl.disabled = true;
+            if (uEl) uEl.disabled = true;
+        }
+        return tr;
+    }
+
+    async function loadUsers() {
+        const res = await fetch("/api/users");
+        if (!res.ok) {
+            alert("사용자 정보를 불러오지 못했습니다.");
+            return;
+        }
+        const data = await res.json();
+        gUsers = data.users || [];
+
+        // overhead_display_pct 전역 갱신
+        if (typeof data.overhead_display_pct === "number") {
+            gOverheadPct = data.overhead_display_pct;
+        }
+        const overheadBadge = document.getElementById("card-overhead-pct");
+        if (overheadBadge) overheadBadge.textContent = gOverheadPct.toFixed(1) + " %";
+
+        // ✅ 최근 업데이트 시각 자동 갱신
+        const lastUpdated = data.last_updated || data.last_updated_utc || null;
+        if (lastUpdated) {
+            const hiddenEl = document.getElementById("card-last-updated");
+            if (hiddenEl) hiddenEl.textContent = lastUpdated;
+            const footerEl = document.getElementById("footer-last-updated");
+            if (footerEl) footerEl.textContent = lastUpdated + " (UTC)";
+        }
+
+        const tbody = document.getElementById("user-tbody");
+        tbody.innerHTML = "";
+
+        gUsers.forEach(u => {
+            if (u.user === "default-trial") return; // default-trial 사용자 숨김
+            const row = buildRow(u);
+            tbody.appendChild(row);
+
+            if (CURRENT_ROLE === "superadmin") {
+                updateUsageHelper(u.user);
+            }
+        });
+
+        recalcUsageSummary();
+        refreshBillingStartCard();
+    }
+
+    async function saveUserSettings(showAlert = true) {
+        const payload = { users: [] };
+
+        gUsers.forEach(u => {
+            const cb = document.getElementById(`chk-${u.user}`);
+
+            // ✅ 기본: 기존 offset 유지
+            let offsetBytes = asIntOr0(u._offset_bytes);
+
+            // ✅ Superadmin + 체크된 사용자만: 입력값 기준으로 offset 재계산
+            if (CURRENT_ROLE === "superadmin" && cb && cb.checked) {
+                const desiredBytes = getUsageBytesFromInputs(u.user);
+                const rawBytes = getRawUsageBytes(u);
+                offsetBytes = desiredBytes - rawBytes;
+                u._offset_bytes = offsetBytes;
+            }
+
+            const obj = {
+                user: u.user,
+                _offset_bytes: offsetBytes,
+            };
+
+            payload.users.push(obj);
+        });
+
+        try {
+            const res = await fetch("/api/users/save", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const txt = await res.text();
+                if (showAlert) alert("저장 실패: " + txt);
+                return false;
+            }
+
+            if (showAlert) {
+                alert("사용자 설정이 저장되었습니다.");
+            }
+            clearDirty();
+            return true;
+        } catch (e) {
+            if (showAlert) alert("저장 중 오류가 발생했습니다: " + e);
+            return false;
+        }
+    }
+
+    // ===== ISO <-> 표시 문자열 변환 =====
+    function isoToDisplay(iso) {
+        if (!iso) return "";
+        const m = iso.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+        if (m) {
+            return m[1] + " " + m[2];
+        }
+        const m2 = iso.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$/);
+        if (m2) return iso;
+        return iso;
+    }
+
+    function displayToIso(str) {
+        const m = str.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})$/);
+        if (!m) return null;
+        const date = m[1];
+        const hh = m[2];
+        const mm = m[3];
+        return `${date}T${hh}:${mm}:00Z`;
+    }
+
+    // ===== 집계 기준 시작 모달 =====
+    function openPeriodModal() {
+        const modal = document.getElementById("period-modal");
+        modal.style.display = "flex";
+
+        // billing_start_day.txt 에서 현재 기준일 숫자 로드
+        fetch("/api/settings/billing_start_day")
+            .then(r => r.json())
+            .then(js => {
+                if (js.billing_start_day) {
+                    document.getElementById("period-input").value = js.billing_start_day;
+                }
+            })
+            .catch(() => {});
+    }
+
+    function pad2(n){ return String(n).padStart(2, "0"); }
+
+    function computeNextResetYYYYMMDD(nowUtc, startDay){
+        // nowUtc: Date (UTC)
+        // startDay: 1~31
+        const y = nowUtc.getUTCFullYear();
+        const m = nowUtc.getUTCMonth(); // 0~11
+
+        // 이번달 startDay 날짜(말일 clamp) 00:00:00Z
+        const lastDayThisMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+        const thisMonthDay = Math.min(startDay, lastDayThisMonth);
+        const thisReset = new Date(Date.UTC(y, m, thisMonthDay, 0, 0, 0));
+
+        // now가 이번달 reset 이전이면 -> 이번달 reset, 아니면 -> 다음달 reset
+        let target = thisReset;
+        if (nowUtc.getTime() >= thisReset.getTime()) {
+            const y2 = (m === 11) ? (y + 1) : y;
+            const m2 = (m === 11) ? 0 : (m + 1);
+            const lastDayNext = new Date(Date.UTC(y2, m2 + 1, 0)).getUTCDate();
+            const nextDay = Math.min(startDay, lastDayNext);
+            target = new Date(Date.UTC(y2, m2, nextDay, 0, 0, 0));
+        }
+
+        return `${target.getUTCFullYear()}-${pad2(target.getUTCMonth()+1)}-${pad2(target.getUTCDate())}`;
+    }
+
+    async function refreshBillingStartCard(){
+        try{
+            const r = await fetch("/api/settings/billing_start_day");
+            if(!r.ok) return;
+            const js = await r.json();
+            const day = parseInt(js.billing_start_day, 10);
+            if(!Number.isFinite(day) || day < 1 || day > 31) return;
+
+            // now는 화면의 "최근 업데이트 UTC"를 우선 사용
+            const now = getNowUtcFromPage() || new Date();
+
+            const ymd = computeNextResetYYYYMMDD(now, day);
+            document.getElementById("card-period-start").textContent = ymd;
+
+        }catch(e){ /* ignore */ }
+    }
+
+    function closePeriodModal() {
+        const modal = document.getElementById("period-modal");
+        modal.style.display = "none";
+    }
+
+
+
+    async function savePeriodStart() {
+        const inputEl = document.getElementById("period-input");
+        if (!inputEl) { alert("period-input 요소를 찾지 못했습니다."); return; }
+
+        const dayVal = parseInt(inputEl.value.trim(), 10);
+        if (isNaN(dayVal) || dayVal < 1 || dayVal > 31) {
+            alert("1 ~ 31 사이의 숫자를 입력하세요.");
+            return;
+        }
+
+        const res = await fetch("/api/settings/billing_start_day", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({billing_start_day: dayVal})
+        });
+
+        if (!res.ok) {
+            const txt = await res.text();
+            alert("저장 실패 (billing_date.json): " + txt);
+            return;
+        }
+
+        // ✅ 응답에서 align 결과(last_reset)를 받아 토스트 표시
+        let js = {};
+        try { js = await res.json(); } catch(e) {}
+
+        const alignedReset = js.last_reset_yyyymmdd || "(unknown)";
+        const alignedSnap  = js.last_snapshot_yyyymmdd || "(unknown)";
+
+        showToast(
+            `✅ 기준일 저장 완료\n` +
+            `billing_start_day: 매월 ${dayVal}일\n` +
+            `align last_reset: ${alignedReset}\n` +
+            `align last_snapshot: ${alignedSnap}`,
+            5000
+        );
+
+        closePeriodModal();
+        refreshBillingStartCard();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    // ===== 오버헤드 보정% 모달 =====
+    function openOverheadModal() {
+        const modal = document.getElementById("overhead-modal");
+        if (modal) modal.style.display = "flex";
+        // 현재 저장된 값 로드
+        fetch("/api/settings/overhead_display_pct")
+            .then(r => r.json())
+            .then(js => {
+                if (typeof js.overhead_display_pct === "number") {
+                    document.getElementById("overhead-input").value =
+                        js.overhead_display_pct.toFixed(1);
+                }
+            })
+            .catch(() => {});
+    }
+
+    function closeOverheadModal() {
+        const modal = document.getElementById("overhead-modal");
+        if (modal) modal.style.display = "none";
+        // 상태 초기화
+        const btnSave   = document.getElementById("overhead-btn-save");
+        const btnCancel = document.getElementById("overhead-btn-cancel");
+        const savingMsg = document.getElementById("overhead-saving-msg");
+        if (btnSave)   { btnSave.disabled = false; btnSave.textContent = "저장"; }
+        if (btnCancel) { btnCancel.disabled = false; btnCancel.style.opacity = ""; }
+        if (savingMsg) { savingMsg.style.display = "none"; }
+    }
+
+    async function saveOverheadPct() {
+        const inputEl = document.getElementById("overhead-input");
+        if (!inputEl) return;
+        const val = parseFloat(inputEl.value);
+        if (isNaN(val) || val < 0 || val > 20) {
+            alert("0.0 ~ 20.0 사이의 숫자를 입력하세요.");
+            return;
+        }
+
+        // ── 저장 중 UI 전환 ──
+        const btnSave   = document.getElementById("overhead-btn-save");
+        const btnCancel = document.getElementById("overhead-btn-cancel");
+        const savingMsg = document.getElementById("overhead-saving-msg");
+        if (btnSave)   { btnSave.disabled = true; btnSave.textContent = "저장 중…"; }
+        if (btnCancel) { btnCancel.disabled = true; btnCancel.style.opacity = "0.4"; }
+        if (savingMsg) { savingMsg.style.display = "block"; }
+
+        let res;
+        try {
+            res = await fetch("/api/settings/overhead_display_pct", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ overhead_display_pct: val })
+            });
+        } catch(e) {
+            // 네트워크 오류 시 UI 복원
+            if (btnSave)   { btnSave.disabled = false; btnSave.textContent = "저장"; }
+            if (btnCancel) { btnCancel.disabled = false; btnCancel.style.opacity = ""; }
+            if (savingMsg) { savingMsg.style.display = "none"; }
+            alert("서버 통신 오류: " + e.message);
+            return;
+        }
+
+        if (!res.ok) {
+            const txt = await res.text();
+            if (btnSave)   { btnSave.disabled = false; btnSave.textContent = "저장"; }
+            if (btnCancel) { btnCancel.disabled = false; btnCancel.style.opacity = ""; }
+            if (savingMsg) { savingMsg.style.display = "none"; }
+            alert("저장 실패: " + txt);
+            return;
+        }
+
+        let js = {};
+        try { js = await res.json(); } catch(e) {}
+
+        gOverheadPct = js.overhead_display_pct ?? val;
+        const badge = document.getElementById("card-overhead-pct");
+        if (badge) badge.textContent = gOverheadPct.toFixed(1) + " %";
+
+        const limRes = js.limits_applied || {};
+        const okCount = (limRes.ok || []).length;
+        const failCount = (limRes.fail || []).length;
+        const limitMsg = failCount > 0
+            ? `RouterOS limit 적용: ${okCount}명 성공, ${failCount}명 실패`
+            : `RouterOS limit 전체 적용: ${okCount}명 완료`;
+
+        showToast(
+            `✅ 보정% 저장 완료 → ${gOverheadPct.toFixed(1)}%\n` +
+            limitMsg + `\n(과거 아카이브는 각자 저장된 % 유지)`,
+            6000
+        );
+
+        closeOverheadModal();
+        await loadUsers();
+    }
+
+
+    // ===== Limit 변경 모달 =====
+    let _limitModalUser = null;
+
+    function openLimitModal(username, currentLimitGb) {
+        _limitModalUser = username;
+        document.getElementById("limit-modal-username").textContent = username;
+        document.getElementById("limit-modal-input").value = currentLimitGb.toFixed(1);
+        const modal = document.getElementById("limit-modal");
+        if (modal) modal.style.display = "flex";
+        setTimeout(() => document.getElementById("limit-modal-input").select(), 50);
+    }
+
+    function closeLimitModal() {
+        const modal = document.getElementById("limit-modal");
+        if (modal) modal.style.display = "none";
+        _limitModalUser = null;
+    }
+
+    async function saveLimitModal() {
+        if (!_limitModalUser) return;
+        const inputEl = document.getElementById("limit-modal-input");
+        const newLimit = parseFloat(inputEl.value);
+        if (isNaN(newLimit) || newLimit < 1) {
+            alert("1 이상의 숫자를 입력하세요.");
+            return;
+        }
+
+        const user = gUsers.find(u => u.user === _limitModalUser);
+        if (!user) { closeLimitModal(); return; }
+
+        const oldLimit = parseFloat(user.limit_gb_original || user.limit_gb || 100);
+        if (Math.abs(newLimit - oldLimit) < 0.05) {
+            showToast("변경 없음 — 기존 값과 동일합니다.", 2500);
+            closeLimitModal();
+            return;
+        }
+
+        const payload = { users: [{ user: _limitModalUser, limit_gb_original: newLimit }] };
+
+        try {
+            const res = await fetch("/api/users/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) {
+                const txt = await res.text();
+                alert("저장 실패: " + txt);
+                return;
+            }
+
+            // 화면 즉시 반영
+            user.limit_gb_original = newLimit;
+            user.limit_gb = newLimit;
+            const dispEl = document.getElementById(`limit-display-${_limitModalUser}`);
+            if (dispEl) dispEl.textContent = newLimit.toFixed(1);
+
+            showToast(
+                `✅ ${_limitModalUser} Limit 변경 완료\n` +
+                `${oldLimit.toFixed(1)} GB → ${newLimit.toFixed(1)} GB\n` +
+                `RouterOS raw limit = ${(newLimit / (1 + gOverheadPct / 100)).toFixed(2)} GB`,
+                5000
+            );
+            closeLimitModal();
+            recalcUsageSummary();
+        } catch (e) {
+            alert("서버 통신 오류: " + e.message);
+        }
+    }
+
+
+    // ===== 요금 계산 모달 =====
+    async function openBillingModal() {
+        const modal = document.getElementById("billing-modal");
+        modal.style.display = "flex";
+
+        try {
+            const res = await fetch("/api/billing");
+            if (res.ok) {
+                const data = await res.json();
+                const p = data.params || {};
+                document.getElementById("billing-E1").value =
+                    (p.base_amount_E1 !== undefined) ? p.base_amount_E1 : 80;
+                document.getElementById("billing-F16").value =
+                    (p.target_total_F16 !== undefined) ? p.target_total_F16 : 1750;
+                document.getElementById("billing-F21").value =
+                    (p.common_prepaid_F21 !== undefined) ? p.common_prepaid_F21 : 50;
+            } else {
+                document.getElementById("billing-E1").value = 80;
+                document.getElementById("billing-F16").value = 1750;
+                document.getElementById("billing-F21").value = 50;
+            }
+        } catch (e) {
+            document.getElementById("billing-E1").value = 80;
+            document.getElementById("billing-F16").value = 1750;
+            document.getElementById("billing-F21").value = 50;
+        }
+    }
+
+    function closeBillingModal() {
+        const modal = document.getElementById("billing-modal");
+        modal.style.display = "none";
+    }
+
+    async function handleBillingClick() {
+        const ok = await saveUserSettings(false);
+        if (!ok) return;
+
+        if (typeof runBilling === "function") {
+            await runBilling();
+        } else {
+            alert("runBilling 함수가 정의되어 있지 않습니다.");
+        }
+    }
+
+    function parseUtcTextToDate(raw) {
+        if (!raw) return null;
+        let s = raw.trim();
+
+        s = s.replace(/^UTC\s*:\s*/i, "").trim();
+
+        let d = new Date(s);
+        if (!isNaN(d.getTime()) && /Z$/i.test(s)) return d;
+
+        let m = s.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) {
+            const sec = m[4] ? m[4] : "00";
+            return new Date(`${m[1]}T${m[2]}:${m[3]}:${sec}Z`);
+        }
+
+        let m2 = s.match(/^(\d{4})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{1,2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/i);
+        if (m2) {
+            const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+            const mo = months[m2[2].toLowerCase()];
+            const sec = m2[6] ? parseInt(m2[6],10) : 0;
+            return new Date(Date.UTC(
+                parseInt(m2[1],10),
+                mo,
+                parseInt(m2[3],10),
+                parseInt(m2[4],10),
+                parseInt(m2[5],10),
+                sec
+            ));
+        }
+
+        return null;
+    }
+
+    function getNowUtcFromPage() {
+        const el = document.getElementById("card-last-updated");
+        if (!el) return null;
+        return parseUtcTextToDate(el.textContent);
+    }
+
+    function addOneMonthClampUTC(dt) {
+        const y = dt.getUTCFullYear();
+        const m = dt.getUTCMonth();
+        const d = dt.getUTCDate();
+        const hh = dt.getUTCHours();
+        const mm = dt.getUTCMinutes();
+        const ss = dt.getUTCSeconds();
+
+        const lastDay = new Date(Date.UTC(y, m + 2, 0, hh, mm, ss)).getUTCDate();
+        const nd = Math.min(d, lastDay);
+
+        return new Date(Date.UTC(y, m + 1, nd, hh, mm, ss));
+    }
+
+    function toIsoNoMillisZ(dt) {
+        return dt.toISOString().replace(".000Z", "Z");
+    }
+
+    async function resetAllUsage() {
+        await runResetAction("both");
+    }
+
+    async function runResetAction(mode) {
+        let title = "";
+        let detail = "";
+
+        if (mode === "both") {
+            title = "RouterOS + Pi(usage_public.json) 동시 Reset";
+            detail =
+            "• RouterOS: active 로그아웃 + counters reset\n" +
+            "• Pi: usage_public.json 값 0 초기화\n";
+        } else if (mode === "router") {
+            title = "RouterOS만 Reset";
+            detail =
+            "• RouterOS: active 로그아웃 + counters reset\n" +
+            "• Pi: usage_public.json 값은 유지\n";
+        } else if (mode === "pi") {
+            title = "Pi(usage_public.json)만 Reset";
+            detail =
+            "• Pi: usage_public.json 값 0 초기화\n" +
+            "• RouterOS: counters는 유지\n";
+        } else {
+            alert("알 수 없는 mode 입니다.");
+            return;
+        }
+
+        closeResetModal();
+
+        if (!confirm("주의: " + title + "\n\n" + detail + "\n진행하시겠습니까?")) return;
+        if (!confirm("최종 확인: 되돌릴 수 없습니다. 진행할까요?")) return;
+
+        let url = "";
+        if (mode === "both") url = "/api/routeros/reset_counters_all";
+        if (mode === "router") url = "/api/routeros/reset_counters_router_only";
+        if (mode === "pi") url = "/api/usage/reset_pi_only";
+
+        try {
+            if (typeof showSpinner === "function") showSpinner(true);
+
+            const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+
+            let result = {};
+            try { result = await resp.json(); } catch (e) { result = {}; }
+
+            if (!resp.ok) {
+                alert("오류 발생(RESET 실패):\n" + (result.error || result.message || "알 수 없는 오류"));
+                return;
+            }
+
+            alert("성공:\n" + (result.message || "RESET OK"));
+            location.reload();
+        } catch (e) {
+            console.error(e);
+            alert("서버 통신 중 에러가 발생했습니다.");
+        } finally {
+            if (typeof showSpinner === "function") showSpinner(false);
+        }
+    }
+
+    function openResetModal() {
+        const modal = document.getElementById("reset-modal");
+        if (modal) modal.style.display = "flex";
+    }
+    function closeResetModal() {
+        const modal = document.getElementById("reset-modal");
+        if (modal) modal.style.display = "none";
+    }
+
+    function recalcUsageSummary() {
+        let sumBytes = 0;
+        let publicBytes = 0;
+        gUsers.forEach(u => {
+            const row = document.getElementById(`row-${u.user}`);
+            if (!row) return;
+            const roleVal = document.getElementById(`role-input-${u.user}`);
+            const role = roleVal ? (roleVal.value || "crew") : "crew";
+
+            if (CURRENT_ROLE === "superadmin") {
+                const bytes = getUsageBytesFromInputs(u.user);
+                if (role === "public") {
+                    publicBytes += bytes;
+                } else {
+                    sumBytes += bytes;
+                    updateUsageHelper(u.user);
+                }
+            } else {
+                const bytes = Math.round(getEffectiveUsageBytes(u) * (1 + gOverheadPct / 100));
+                if (role === "public") {
+                    publicBytes += bytes;
+                } else {
+                    sumBytes += bytes;
+                }
+            }
+        });
+
+        const sumGB    = sumBytes    / (1000 * 1000 * 1000);
+        const pubGB    = publicBytes / (1000 * 1000 * 1000);
+        const totalGB  = sumGB + pubGB;
+        const textSpan = document.getElementById("usage-sum-text");
+        if (textSpan) {
+            textSpan.innerHTML =
+                `총 합계 = ` +
+                `<strong style="font-size:1.1em;">${totalGB.toFixed(1)} GB</strong>` +
+                `<span style="font-size:0.85em;color:var(--text-dim);margin-left:6px;">` +
+                `(${sumGB.toFixed(1)} GB 사용자 + ${pubGB.toFixed(1)} GB Public)</span>`;
+        }
+    }
+
+    async function runBilling() {
+        const E1 = parseFloat(document.getElementById("billing-E1").value || "0");
+        const F16 = parseFloat(document.getElementById("billing-F16").value || "0");
+        const F21 = parseFloat(document.getElementById("billing-F21").value || "0");
+
+        const usageSource = "public";
+
+        const payload = {
+            base_amount_E1: E1,
+            target_total_F16: F16,
+            common_prepaid_F21: F21,
+            usage_source: usageSource
+        };
+
+        const res = await fetch("/api/billing/run", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const txt = await res.text();
+            alert("요금 계산 실패: " + txt);
+            return;
+        }
+
+        const data = await res.json();
+        closeBillingModal();
+        renderBillingResult(data);
+    }
+
+    async function saveSnapshot() {
+        if (!confirm("현재 사용량(Usage)을 수동 스냅샷으로 저장하시겠습니까?")) return;
+
+        if (typeof showSpinner === "function") showSpinner(true);
+
+        try {
+            const res = await fetch("/api/snapshot/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                alert("✅ 저장 완료!\n파일명: " + data.filename + "\n위치: manual_archives");
+            } else {
+                alert("❌ 저장 실패: " + (data.error || "서버 오류"));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("❌ 네트워크 오류가 발생했습니다.");
+        } finally {
+            if (typeof showSpinner === "function") showSpinner(false);
+        }
+    }
+
+    function openArchiveBilling() {
+        window.open("/archive_billing", "_blank");
+    }
+
+    function openAllUserGraph() {
+        window.open("/all_user_graph", "_blank");
+    }
+
+    function renderBillingResult(data) {
+        const summary = data.summary || {};
+        const users = data.users || [];
+        const params = data.params || {};
+
+        const E1 = params.base_amount_E1 || 0;
+        const target = summary.target_total || 0;
+        const common = params.common_prepaid_F21 || 0;
+        const collected = summary.sum_final || 0;
+        const checkTotal = summary.check_total_collected || 0;
+        const diff = (typeof target === "number" && typeof checkTotal === "number")
+            ? (checkTotal - target)
+            : 0;
+
+        document.getElementById("br-E1").textContent = `$${E1.toFixed(0)}`;
+        document.getElementById("br-target").textContent = `$${target.toFixed(0)}`;
+        document.getElementById("br-common").textContent = `$${common.toFixed(0)}`;
+        document.getElementById("br-collected").textContent = `$${collected.toFixed(0)}`;
+
+        const diffSpan = document.getElementById("br-diff");
+        diffSpan.textContent = `$${diff.toFixed(0)}`;
+        diffSpan.classList.toggle("warn", Math.abs(diff) > 1e-6);
+
+        const tbody = document.getElementById("billing-users-tbody");
+        tbody.innerHTML = "";
+        users.forEach(u => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${u.display_name || u.name}</td>
+                <td>${ROLE_LABEL[u.role] || u.role}</td>
+                <td class="text-right">${(u.usage_gb || 0).toFixed(3)}</td>
+                <td class="text-right">${(u.base_fee || 0).toFixed(0)}</td>
+                <td class="text-right">${(u.variable_fee || 0).toFixed(0)}</td>
+                <td class="text-right">${(u.final_fee || 0).toFixed(0)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        const box = document.getElementById("billing-result");
+        box.style.display = "block";
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+        applyRoleUI();
+        loadUsers();
+        startAutoRefreshUsers();
+        refreshBillingStartCard();
+    });
+
+</script>
+</body>
+</html>
